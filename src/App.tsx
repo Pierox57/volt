@@ -7,9 +7,12 @@ import {
   ZONES,
   generateId,
 } from './types';
+import type { ZoneSystem } from './zones';
+import { createDefaultZoneSystem } from './zones';
 import Timeline       from './components/Timeline';
 import BlockEditor    from './components/BlockEditor';
 import ShortcutHelper from './components/ShortcutHelper';
+import ZoneSettings   from './components/ZoneSettings';
 import { useKeyboard } from './hooks/useKeyboard';
 import styles from './App.module.css';
 
@@ -17,13 +20,13 @@ import styles from './App.module.css';
 const INITIAL_BLOCKS: Block[] = [
   { id: generateId(), duration: 600, zone: 'z1' },
   { id: generateId(), duration: 300, zone: 'z2' },
-  { id: generateId(), duration: 240, zone: 'tempo' },
-  { id: generateId(), duration: 180, zone: 'threshold' },
-  { id: generateId(), duration: 90,  zone: 'vo2' },
+  { id: generateId(), duration: 240, zone: 'z3' },
+  { id: generateId(), duration: 180, zone: 'z4' },
+  { id: generateId(), duration: 90,  zone: 'z5' },
   { id: generateId(), duration: 180, zone: 'z2' },
-  { id: generateId(), duration: 90,  zone: 'vo2' },
+  { id: generateId(), duration: 90,  zone: 'z5' },
   { id: generateId(), duration: 180, zone: 'z2' },
-  { id: generateId(), duration: 90,  zone: 'threshold' },
+  { id: generateId(), duration: 90,  zone: 'z4' },
   { id: generateId(), duration: 300, zone: 'z1' },
 ];
 
@@ -60,6 +63,7 @@ export default function App() {
   const [blocks,      setBlocks]      = useState<Block[]>(INITIAL_BLOCKS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeId,    setActiveId]    = useState<string | null>(null);
+  const [zoneSystem,  setZoneSystem]  = useState<ZoneSystem>(createDefaultZoneSystem);
 
   /* ── Selection ──────────────────────────────────────────────────────────── */
 
@@ -95,11 +99,19 @@ export default function App() {
     setSelectedIds(new Set([newBlock.id]));
   }, []);
 
-  /* ── Resize block ───────────────────────────────────────────────────────── */
+  /* ── Resize block (duration) ────────────────────────────────────────────── */
 
   const handleResizeBlock = useCallback((id: string, duration: number) => {
     setBlocks((prev) =>
       prev.map((b) => (b.id === id ? { ...b, duration } : b)),
+    );
+  }, []);
+
+  /* ── Watts change ───────────────────────────────────────────────────────── */
+
+  const handleWattsChange = useCallback((id: string, watts: number) => {
+    setBlocks((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, watts } : b)),
     );
   }, []);
 
@@ -151,6 +163,22 @@ export default function App() {
     },
     [selectedIds],
   );
+
+  /** Apply a watts value (absolute) to all selected blocks */
+  const handleBlockEditorWattsChange = useCallback(
+    (watts: number) => {
+      setBlocks((prev) =>
+        prev.map((b) => (selectedIds.has(b.id) ? { ...b, watts } : b)),
+      );
+    },
+    [selectedIds],
+  );
+
+  /* ── Zone system ────────────────────────────────────────────────────────── */
+
+  const handleZoneSystemChange = useCallback((sys: ZoneSystem) => {
+    setZoneSystem(sys);
+  }, []);
 
   /* ── Drag & drop ────────────────────────────────────────────────────────── */
 
@@ -213,6 +241,12 @@ export default function App() {
         </div>
 
         <div className={styles.headerActions}>
+          {/* Zone settings */}
+          <ZoneSettings
+            zoneSystem={zoneSystem}
+            onZoneSystemChange={handleZoneSystemChange}
+          />
+
           <button
             className={styles.btnSecondary}
             onClick={handleDeselectAll}
@@ -221,7 +255,7 @@ export default function App() {
             Désélectionner
           </button>
           <button className={styles.btnPrimary} onClick={handleAddBlock}>
-            <span>+</span>&nbsp;Ajouter un bloc
+            <span>+</span>&nbsp;Ajouter
           </button>
           {blocks.length > 0 && (
             <button
@@ -247,10 +281,12 @@ export default function App() {
           blocks={blocks}
           selectedIds={selectedIds}
           activeId={activeId}
+          zoneSystem={zoneSystem}
           onBlocksChange={setBlocks}
           onSelect={handleSelect}
           onAddBlock={handleAddBlock}
           onResizeBlock={handleResizeBlock}
+          onWattsChange={handleWattsChange}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         />
@@ -260,8 +296,10 @@ export default function App() {
       {selectedBlocks.length > 0 && (
         <BlockEditor
           selectedBlocks={selectedBlocks}
+          zoneSystem={zoneSystem}
           onDurationChange={handleDurationChange}
           onZoneChange={handleZoneChange}
+          onWattsChange={handleBlockEditorWattsChange}
           onDelete={handleDelete}
           onDuplicate={handleDuplicate}
           onClose={handleDeselectAll}

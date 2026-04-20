@@ -9,18 +9,40 @@
   overflow: hidden;
 }
 
-/* ─── Horizontal scroll container ────────────────────────────────────────── */
-.scroll {
-  overflow-x: auto;
-  overflow-y: hidden;
+/* ─── Layout row (scale + canvas) ────────────────────────────────────────── */
+.layoutRow {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
 }
 
 /* ─── Timeline canvas ─────────────────────────────────────────────────────── */
 .canvas {
+  flex: 1;
   position: relative;
-  min-height: 180px;
+  min-width: 0;
   cursor: default;
-  padding: 0 var(--space-4) var(--space-4);
+  padding: 0 var(--space-2) var(--space-3) var(--space-2);
+  overflow: hidden;
+}
+
+/* ─── Zone background stripes ─────────────────────────────────────────────── */
+.zoneStripes {
+  position: absolute;
+  /* Offset by ruler height (36px) + ruler margin (12px) */
+  bottom: var(--space-3);
+  left: var(--space-2);
+  right: var(--space-2);
+  top: 48px; /* ruler area */
+  pointer-events: none;
+}
+
+.zoneStripe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
 }
 
 /* ─── Ruler ───────────────────────────────────────────────────────────────── */
@@ -39,6 +61,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  transform: translateX(-50%);
 }
 
 .markerLabel {
@@ -61,16 +84,17 @@
 .blocksRow {
   display: flex;
   flex-direction: row;
-  align-items: stretch;
-  height: 96px;
-  gap: var(--space-1);
+  align-items: flex-end; /* blocks grow upward from baseline */
+  width: 100%;
+  gap: 3px;
+  position: relative;
 }
 
 /* ─── Add-block zone ──────────────────────────────────────────────────────── */
 .addZone {
   flex-shrink: 0;
-  width: 48px;
-  height: 100%;
+  width: 36px;
+  height: 44px;
   border-radius: var(--radius-md);
   border: 2px dashed var(--color-border-strong);
   background: transparent;
@@ -92,7 +116,7 @@
 }
 
 .addIcon {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 300;
   color: var(--color-text-muted);
   line-height: 1;
@@ -139,21 +163,21 @@
 
 /* ─── Drag overlay ────────────────────────────────────────────────────────── */
 .dragOverlay {
-  height: 96px;
   border-radius: var(--radius-md);
   border: 2px solid;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
+  gap: 2px;
   box-shadow: var(--shadow-xl);
   transform: rotate(1.5deg) scale(1.04);
   cursor: grabbing;
+  padding: var(--space-2);
 }
 
 .dragOverlayLabel {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -161,10 +185,17 @@
 }
 
 .dragOverlayDur {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   font-family: var(--font-mono);
   letter-spacing: -0.02em;
+}
+
+.dragOverlayWatts {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  opacity: 0.75;
 }
 
 /* ─── Total duration strip ────────────────────────────────────────────────── */
