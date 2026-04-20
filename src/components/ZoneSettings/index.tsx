@@ -119,7 +119,12 @@ export default function ZoneSettings({ zoneSystem, onZoneSystemChange }: ZoneSet
             {zoneSystem.zones.map((z, i) => (
               <div key={i} className={styles.zoneRow}>
                 <span className={styles.zoneKey}>Z{i + 1}</span>
-                <span className={styles.zoneRange}>{z.min}–{z.max}</span>
+                <span
+                  className={styles.zoneRange}
+                  aria-label={`${z.min} à ${z.max}`}
+                >
+                  {z.min}-{z.max}
+                </span>
                 <span className={styles.zoneUnit}>
                   {zoneSystem.mode === 'hrmax' ? 'bpm' : 'W'}
                 </span>

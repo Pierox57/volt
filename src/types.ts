@@ -53,6 +53,9 @@ export const DEFAULT_DURATION = 300;
 /** Canvas height for the blocks area in pixels */
 export const CANVAS_HEIGHT = 220;
 
+/** Total number of intensity zones (used for intensity bar height calculation) */
+export const TOTAL_ZONES = 7;
+
 /** Minimum block height in pixels */
 export const MIN_BLOCK_HEIGHT = 28;
 

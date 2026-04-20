@@ -39,9 +39,16 @@ export function computeZonesFromFTP(ftp: number): ZoneRange[] {
   }));
 }
 
-// FTP ≈ 75 % of PMA
+/**
+ * PMA (Puissance Maximale Aérobie / VO2max power) to FTP ratio.
+ * Based on the common empirical relationship: FTP ≈ 75 % of PMA.
+ * This ratio varies between ~70-80 % depending on athlete profile
+ * (Coggan & Allen, "Training and Racing with a Power Meter").
+ */
+const PMA_TO_FTP_RATIO = 0.75;
+
 export function computeZonesFromPMA(pma: number): ZoneRange[] {
-  return computeZonesFromFTP(Math.round(pma * 0.75));
+  return computeZonesFromFTP(Math.round(pma * PMA_TO_FTP_RATIO));
 }
 
 // HR zones as % of HRmax

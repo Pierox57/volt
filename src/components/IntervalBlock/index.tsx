@@ -8,6 +8,7 @@ import {
   SNAP_GRID,
   CANVAS_HEIGHT,
   MIN_BLOCK_HEIGHT,
+  TOTAL_ZONES,
   formatDuration,
 } from '../../types';
 import { smartSnapWatts } from '../../zones';
@@ -217,7 +218,7 @@ export default function IntervalBlock({
         {/* ── Intensity bar (left accent) ── */}
         <div
           className={styles.intensityBar}
-          style={{ height: `${(zone.intensity / 7) * 100}%`, background: zone.border }}
+          style={{ height: `${(zone.intensity / TOTAL_ZONES) * 100}%`, background: zone.border }}
         />
 
         {/* ── Width resize handle (right edge) ── */}
