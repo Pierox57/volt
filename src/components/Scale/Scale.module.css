@@ -4,7 +4,8 @@
   flex-shrink: 0;
   overflow: visible;  /* allow top graduation label to show */
   border-right: 1px solid var(--color-border);
-  height: 100%;       /* fill contentRow height */
+  /* height is provided by flexbox align-items:stretch on the parent contentRow;
+     an explicit height:100% would fail because the parent has no definite px height */
 }
 
 .zoneBand {
