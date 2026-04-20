@@ -1,0 +1,197 @@
+/* ─── Outer wrapper ───────────────────────────────────────────────────────── */
+.outer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+/* ─── Horizontal scroll container ────────────────────────────────────────── */
+.scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* ─── Timeline canvas ─────────────────────────────────────────────────────── */
+.canvas {
+  position: relative;
+  min-height: 180px;
+  cursor: default;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+/* ─── Ruler ───────────────────────────────────────────────────────────────── */
+.ruler {
+  position: relative;
+  height: 36px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-3);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.marker {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.markerLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  line-height: 24px;
+  font-family: var(--font-mono);
+}
+
+.markerLine {
+  width: 1px;
+  height: 8px;
+  background: var(--color-border);
+}
+
+/* ─── Blocks row ──────────────────────────────────────────────────────────── */
+.blocksRow {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: 96px;
+  gap: var(--space-1);
+}
+
+/* ─── Add-block zone ──────────────────────────────────────────────────────── */
+.addZone {
+  flex-shrink: 0;
+  width: 48px;
+  height: 100%;
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--color-border-strong);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast),
+    background var(--duration-fast),
+    transform var(--duration-fast) var(--ease-spring);
+  align-self: center;
+}
+
+.addZone:hover {
+  border-color: var(--color-accent);
+  background: rgba(37, 99, 235, 0.06);
+  transform: scale(1.06);
+}
+
+.addIcon {
+  font-size: 22px;
+  font-weight: 300;
+  color: var(--color-text-muted);
+  line-height: 1;
+  transition: color var(--duration-fast);
+}
+
+.addZone:hover .addIcon {
+  color: var(--color-accent);
+}
+
+/* ─── Empty state ─────────────────────────────────────────────────────────── */
+.emptyState {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.emptyIcon {
+  font-size: 36px;
+  animation: pulse 2s var(--ease-in-out) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.1); }
+}
+
+.emptyTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.emptyHint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+/* ─── Drag overlay ────────────────────────────────────────────────────────── */
+.dragOverlay {
+  height: 96px;
+  border-radius: var(--radius-md);
+  border: 2px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  box-shadow: var(--shadow-xl);
+  transform: rotate(1.5deg) scale(1.04);
+  cursor: grabbing;
+}
+
+.dragOverlayLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+.dragOverlayDur {
+  font-size: 16px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
+}
+
+/* ─── Total duration strip ────────────────────────────────────────────────── */
+.durationStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+}
+
+.durationTotal {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.durationTotal strong {
+  color: var(--color-text);
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.blockCount {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-border);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}

@@ -1,0 +1,229 @@
+/* ─── Panel ───────────────────────────────────────────────────────────────── */
+.panel {
+  position: fixed;
+  bottom: var(--space-8);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(580px, calc(100vw - 32px));
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  z-index: 200;
+
+  animation: slideUp var(--duration-normal) var(--ease-spring) both;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* ─── Header ──────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.selectionInfo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.closeBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.closeBtn:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+/* ─── Body ────────────────────────────────────────────────────────────────── */
+.body {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ─── Section ─────────────────────────────────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.divider {
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* ─── Duration ────────────────────────────────────────────────────────────── */
+.durationRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.durationDisplay {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  letter-spacing: -0.04em;
+  color: var(--color-text);
+  min-width: 90px;
+}
+
+.durationButtons {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.stepBtn {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  transition:
+    background var(--duration-fast),
+    border-color var(--duration-fast),
+    transform var(--duration-fast) var(--ease-spring);
+}
+
+.stepBtn:hover {
+  transform: scale(1.06);
+}
+
+.stepBtnNeg:hover {
+  background: rgba(230, 57, 70, 0.1);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.stepBtnPos:hover {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* ─── Zone chips ──────────────────────────────────────────────────────────── */
+.zoneChips {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.zoneChip {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 2px solid var(--chip-border);
+  background: transparent;
+  color: var(--color-text);
+  transition:
+    background var(--duration-fast),
+    color var(--duration-fast),
+    transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-fast);
+}
+
+.zoneChip:hover {
+  background: var(--chip-bg);
+  color: var(--chip-color);
+  transform: scale(1.06);
+}
+
+.zoneChipActive {
+  background: var(--chip-bg) !important;
+  color: var(--chip-color) !important;
+  box-shadow: 0 0 0 3px rgba(0,0,0,.08);
+  transform: scale(1.04);
+}
+
+.mixedHint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ─── Actions ─────────────────────────────────────────────────────────────── */
+.actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.actionBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  transition:
+    background var(--duration-fast),
+    border-color var(--duration-fast),
+    color var(--duration-fast),
+    transform var(--duration-fast) var(--ease-spring);
+}
+
+.actionBtn:hover {
+  transform: scale(1.02);
+}
+
+.actionDuplicate:hover {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.actionDelete:hover {
+  background: rgba(230, 57, 70, 0.1);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.actionIcon {
+  font-size: 16px;
+}
