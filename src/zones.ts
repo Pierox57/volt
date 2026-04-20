@@ -94,7 +94,9 @@ export function getZoneIndexForWatts(watts: number, zones: ZoneRange[]): number 
 
 /** Get the midpoint watts of a zone */
 export function zoneMidpoint(range: ZoneRange): number {
-  // For Z7, use slightly above min to avoid huge values
+  // Cap the effective max at 130 % of the zone minimum.
+  // This prevents Z7 (neuromuscular, theoretically unbounded) from
+  // producing an unrealistically large midpoint value.
   const max = Math.min(range.max, range.min * 1.3);
   return Math.round((range.min + max) / 2);
 }

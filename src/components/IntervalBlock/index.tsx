@@ -161,8 +161,8 @@ export default function IntervalBlock({
   );
 
   /* ── Derived display values ─────────────────────────────────────────────── */
-  // Estimate pixel height for content-hiding thresholds (100px min container as fallback)
-  const approxHeightPx = Math.max(MIN_BLOCK_HEIGHT, heightRatio * 100);
+  // Use CANVAS_HEIGHT as the reference for content-hiding thresholds (same baseline as drag overlay)
+  const approxHeightPx = Math.max(MIN_BLOCK_HEIGHT, heightRatio * CANVAS_HEIGHT);
   const isTiny      = approxHeightPx < 48;
   const isVerySmall = approxHeightPx < 32;
 
