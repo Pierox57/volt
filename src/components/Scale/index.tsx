@@ -1,6 +1,7 @@
 /**
  * Scale – vertical axis showing watts values and zone colour bands.
  * Positioned to the left of the timeline blocks area.
+ * Uses percentage-based positioning so it adapts to any container height.
  */
 import type { ZoneRange } from '../../types';
 import { ZONE_CONFIG, ZONES } from '../../types';
@@ -9,11 +10,10 @@ import styles from './Scale.module.css';
 interface ScaleProps {
   zones: ZoneRange[];
   maxDisplayWatts: number;
-  canvasHeight: number;
   mode: 'watts' | 'hr';
 }
 
-export default function Scale({ zones, maxDisplayWatts, canvasHeight, mode }: ScaleProps) {
+export default function Scale({ zones, maxDisplayWatts, mode }: ScaleProps) {
   // Collect unique boundary values to display as graduation lines
   const boundaries: number[] = [];
   for (const z of zones) {
@@ -23,38 +23,36 @@ export default function Scale({ zones, maxDisplayWatts, canvasHeight, mode }: Sc
   boundaries.sort((a, b) => a - b);
 
   return (
-    <div className={styles.scale} style={{ height: canvasHeight }}>
-      {/* Zone color bands */}
+    <div className={styles.scale}>
+      {/* Zone color bands – percentage positioning, fills container height */}
       {ZONES.map((zoneKey, i) => {
         const range = zones[i];
         const cfg = ZONE_CONFIG[zoneKey];
-        const bottomRatio = Math.min(range.min / maxDisplayWatts, 1);
-        const topRatio    = Math.min(range.max / maxDisplayWatts, 1);
-        const bottom = bottomRatio * canvasHeight;
-        const height = Math.max(0, (topRatio - bottomRatio) * canvasHeight);
+        const bottomPct = Math.min(range.min / maxDisplayWatts, 1) * 100;
+        const topPct    = Math.min(range.max / maxDisplayWatts, 1) * 100;
+        const heightPct = Math.max(0, topPct - bottomPct);
         return (
           <div
             key={zoneKey}
             className={styles.zoneBand}
             style={{
-              bottom,
-              height,
+              bottom: `${bottomPct}%`,
+              height: `${heightPct}%`,
               background: cfg.bg,
-              opacity: 0.25,
+              opacity: 0.3,
             }}
           />
         );
       })}
 
-      {/* Graduation lines + labels */}
+      {/* Graduation lines + labels – percentage positioning */}
       {boundaries.map((val) => {
-        const ratio = Math.min(val / maxDisplayWatts, 1);
-        const bottom = ratio * canvasHeight;
+        const bottomPct = Math.min(val / maxDisplayWatts, 1) * 100;
         return (
           <div
             key={val}
             className={styles.graduation}
-            style={{ bottom }}
+            style={{ bottom: `${bottomPct}%` }}
           >
             <span className={styles.label}>
               {val}{mode === 'watts' ? 'W' : ''}

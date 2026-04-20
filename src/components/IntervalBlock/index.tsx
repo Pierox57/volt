@@ -18,10 +18,10 @@ interface IntervalBlockProps {
   block: Block;
   isSelected: boolean;
   isActive: boolean;
-  /** Width as a CSS value, e.g. "12.5%" or "80px" */
+  /** Width as a CSS value, e.g. "12.5%" */
   widthStyle: string;
-  /** Computed pixel height based on watts */
-  heightPx: number;
+  /** Height as a 0–1 ratio of the blocks-row container height */
+  heightRatio: number;
   /** The effective watts for this block (computed by parent) */
   effectiveWatts: number;
   /** Zone ranges for smart snap */
@@ -40,7 +40,7 @@ export default function IntervalBlock({
   isSelected,
   isActive,
   widthStyle,
-  heightPx,
+  heightRatio,
   effectiveWatts,
   zoneRanges,
   neighborWatts,
@@ -64,15 +64,16 @@ export default function IntervalBlock({
   const sortableStyle: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : (transition ?? undefined),
-    width: widthStyle,
-    flexShrink: 0,
+    // flexShrink: 1 lets blocks compress proportionally so the last block isn't clipped
+    flexShrink: 1,
     flexGrow: 0,
     flexBasis: widthStyle,
     opacity: isDragging ? 0.35 : 1,
     zIndex: isDragging ? 0 : undefined,
-    // Blocks grow upward from the bottom
+    // Blocks grow upward from the bottom of the row
     alignSelf: 'flex-end',
-    height: `${Math.max(MIN_BLOCK_HEIGHT, heightPx)}px`,
+    // Use CSS max() so blocks have both a minimum pixel height and a % of the container
+    height: `max(${MIN_BLOCK_HEIGHT}px, ${(heightRatio * 100).toFixed(2)}%)`,
   };
 
   /* ── Selection ──────────────────────────────────────────────────────────── */
@@ -129,8 +130,11 @@ export default function IntervalBlock({
       startYRef.current         = e.clientY;
       startWattsRef.current     = effectiveWatts;
 
+      // Get the actual container height at drag-start time for accurate px-per-watt mapping
+      const containerEl = (e.currentTarget.closest('[data-blocks-row]') as HTMLElement | null);
+      const containerH  = containerEl?.clientHeight ?? CANVAS_HEIGHT;
       // px per watt for this canvas
-      const pxPerWatt = CANVAS_HEIGHT / maxDisplayWatts;
+      const pxPerWatt = containerH / maxDisplayWatts;
 
       const onPointerMove = (ev: PointerEvent) => {
         if (!resizingHeightRef.current) return;
@@ -157,9 +161,10 @@ export default function IntervalBlock({
   );
 
   /* ── Derived display values ─────────────────────────────────────────────── */
-  const blockHeight = Math.max(MIN_BLOCK_HEIGHT, heightPx);
-  const isTiny      = blockHeight < 48;
-  const isVerySmall = blockHeight < 32;
+  // Estimate pixel height for content-hiding thresholds (100px min container as fallback)
+  const approxHeightPx = Math.max(MIN_BLOCK_HEIGHT, heightRatio * 100);
+  const isTiny      = approxHeightPx < 48;
+  const isVerySmall = approxHeightPx < 32;
 
   const blockClass = [
     styles.block,

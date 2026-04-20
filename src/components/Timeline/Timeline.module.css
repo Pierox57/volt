@@ -3,56 +3,38 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  flex: 1;          /* fill available height in .main */
+  min-height: 0;
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 
-/* ─── Layout row (scale + canvas) ────────────────────────────────────────── */
-.layoutRow {
+/* ─── Ruler row (full width, sits above scale + blocks) ───────────────────── */
+.rulerRow {
   display: flex;
   flex-direction: row;
-  align-items: stretch;
-  width: 100%;
+  flex-shrink: 0;
+  height: 36px;
+  border-bottom: 1px solid var(--color-border);
+  user-select: none;
 }
 
-/* ─── Timeline canvas ─────────────────────────────────────────────────────── */
-.canvas {
-  flex: 1;
-  position: relative;
-  min-width: 0;
-  cursor: default;
-  padding: 0 var(--space-2) var(--space-3) var(--space-2);
-  overflow: hidden;
-}
-
-/* ─── Zone background stripes ─────────────────────────────────────────────── */
-.zoneStripes {
-  position: absolute;
-  /* Offset by ruler height (36px) + ruler margin (12px) */
-  bottom: var(--space-3);
-  left: var(--space-2);
-  right: var(--space-2);
-  top: 48px; /* ruler area */
-  pointer-events: none;
-}
-
-.zoneStripe {
-  position: absolute;
-  left: 0;
-  right: 0;
-  pointer-events: none;
+/* Placeholder that lines up with the scale column */
+.scaleGap {
+  width: 48px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
 }
 
 /* ─── Ruler ───────────────────────────────────────────────────────────────── */
 .ruler {
+  flex: 1;
   position: relative;
-  height: 36px;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: var(--space-3);
-  flex-shrink: 0;
-  user-select: none;
+  height: 100%;
+  padding: 0 var(--space-2);
+  overflow: visible;  /* let labels breathe */
 }
 
 .marker {
@@ -61,7 +43,6 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  transform: translateX(-50%);
 }
 
 .markerLabel {
@@ -80,14 +61,55 @@
   background: var(--color-border);
 }
 
+/* ─── Content row: Scale + blocks area ────────────────────────────────────── */
+.contentRow {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+/* ─── Blocks area (replaces old .canvas) ─────────────────────────────────── */
+.blocksArea {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  cursor: default;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* ─── Blocks row ──────────────────────────────────────────────────────────── */
 .blocksRow {
+  flex: 1;
   display: flex;
   flex-direction: row;
   align-items: flex-end; /* blocks grow upward from baseline */
   width: 100%;
   gap: 3px;
   position: relative;
+  min-height: 80px;
+}
+
+/* ─── Zone horizontal lines (replaces colored background bands) ───────────── */
+.zoneLines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Single thin line at each zone boundary */
+.zoneLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-border-strong);
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 /* ─── Add-block zone ──────────────────────────────────────────────────────── */
@@ -206,6 +228,7 @@
   padding: var(--space-2) var(--space-4);
   border-top: 1px solid var(--color-border);
   background: var(--color-surface-2);
+  flex-shrink: 0;
 }
 
 .durationTotal {
@@ -226,3 +249,4 @@
   padding: 2px 8px;
   border-radius: var(--radius-full);
 }
+
