@@ -15,7 +15,7 @@ export type CalcMode = 'ftp' | 'pma' | 'hrmax' | 'manual';
 export interface ZoneSystem {
   mode: CalcMode;
   ftp: number;     // watts (default 250)
-  pma: number;     // watts, VO2max power (≈ FTP / 0.75)
+  pma: number;     // watts, VO2max power (FTP ≈ 0.75 × PMA)
   hrmax: number;   // bpm
   /** 7 zone boundary ranges, index 0=Z1 … 6=Z7 */
   zones: ZoneRange[];
