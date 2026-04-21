@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -7,7 +7,7 @@ import {
   useSensors,
   closestCenter,
 } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent, Modifier } from '@dnd-kit/core';
 import {
   SortableContext,
   horizontalListSortingStrategy,
@@ -64,6 +64,8 @@ export default function Timeline({
 }: TimelineProps) {
   const wrapperRef   = useRef<HTMLDivElement>(null);
   const blocksRowRef = useRef<HTMLDivElement>(null);
+  // Stores the click offset (px) within the dragged element at drag-start time
+  const clickOffsetRef = useRef<{ x: number; y: number } | null>(null);
 
   const totalDuration   = blocks.reduce((s, b) => s + b.duration, 0);
   const interval        = markerInterval(totalDuration);
@@ -128,6 +130,34 @@ export default function Timeline({
     ? blockData[blocks.indexOf(activeBlock)]
     : null;
 
+  /* ── Modifier: keep initial click point aligned with cursor ──────────── */
+  const dragOverlayModifiers = useMemo<Modifier[]>(
+    () => [
+      ({ transform, draggingNodeRect, overlayNodeRect }) => {
+        const offset = clickOffsetRef.current;
+        if (!offset || !draggingNodeRect || !overlayNodeRect) return transform;
+
+        // Proportional click position within the original element
+        const relX = Math.min(1, Math.max(0, offset.x / draggingNodeRect.width));
+        const relY = Math.min(1, Math.max(0, offset.y / draggingNodeRect.height));
+
+        // Equivalent position within the overlay
+        const targetX = relX * overlayNodeRect.width;
+        const targetY = relY * overlayNodeRect.height;
+
+        // Shift overlay so the click point stays under the cursor.
+        // (targetX - offset.x) is the pixel adjustment needed so that
+        // the proportional click position in the overlay matches the original.
+        return {
+          ...transform,
+          x: transform.x + (targetX - offset.x),
+          y: transform.y + (targetY - offset.y),
+        };
+      },
+    ],
+    [],
+  );
+
   /* ── Internal drag end (reorder + notify parent) ─────────────────────── */
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -147,7 +177,20 @@ export default function Timeline({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={(e: DragStartEvent) => onDragStart(String(e.active.id))}
+        onDragStart={(e: DragStartEvent) => {
+            // Capture where within the dragged element the pointer initially clicked
+            const rect = e.active.rect.current.initial;
+            const ev   = e.activatorEvent as PointerEvent | MouseEvent | null;
+            if (rect && ev && 'clientX' in ev) {
+              clickOffsetRef.current = {
+                x: ev.clientX - rect.left,
+                y: ev.clientY - rect.top,
+              };
+            } else {
+              clickOffsetRef.current = null;
+            }
+            onDragStart(String(e.active.id));
+          }}
         onDragEnd={handleDragEnd}
       >
         {/* ── Ruler row (full width, spans scale gap + blocks area) ── */}
@@ -269,7 +312,7 @@ export default function Timeline({
         </div>
 
         {/* ── Drag overlay ── */}
-        <DragOverlay>
+        <DragOverlay modifiers={dragOverlayModifiers}>
           {activeBlock != null && activeBlockData != null && (
             <div
               className={styles.dragOverlay}
