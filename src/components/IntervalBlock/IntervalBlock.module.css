@@ -10,7 +10,7 @@
   border-radius: var(--radius-md);
   border: 2px solid transparent;
   overflow: hidden;
-  cursor: pointer;
+  cursor: grab;
   user-select: none;
   display: flex;
   flex-direction: column;
@@ -51,12 +51,16 @@
   z-index: 100;
 }
 
+.block:active {
+  cursor: grabbing;
+}
+
 /* ─── Height resize handle (top edge) ────────────────────────────────────── */
 .heightResizeHandle {
   position: absolute;
   top: 0;
   left: 8px;
-  right: 28px; /* leave room for drag handle area */
+  right: 8px;
   height: 12px;
   cursor: ns-resize;
   display: flex;
@@ -80,35 +84,6 @@
   border-radius: 2px;
   opacity: 0.4;
   box-shadow: 0 -4px 0 currentColor;
-}
-
-/* ─── Drag handle ─────────────────────────────────────────────────────────── */
-.dragHandle {
-  width: 100%;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity var(--duration-fast);
-  margin-top: 10px; /* below height-resize handle */
-}
-
-.dragHandle:active {
-  cursor: grabbing;
-}
-
-.block:hover .dragHandle {
-  opacity: 0.5;
-}
-
-.dragDots {
-  font-size: 14px;
-  line-height: 1;
-  color: currentColor;
-  letter-spacing: 1px;
 }
 
 /* ─── Content ─────────────────────────────────────────────────────────────── */

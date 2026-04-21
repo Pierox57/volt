@@ -184,6 +184,8 @@ export default function IntervalBlock({
           color:       zone.color,
           height:      '100%',
         }}
+        {...attributes}
+        {...listeners}
         onClick={handleClick}
         role="button"
         tabIndex={0}
@@ -200,11 +202,6 @@ export default function IntervalBlock({
           title={`${effectiveWatts}W – glisser pour ajuster`}
         >
           <span className={styles.heightResizeDots} />
-        </div>
-
-        {/* ── Drag handle ── */}
-        <div className={styles.dragHandle} {...attributes} {...listeners}>
-          {!isTiny && <span className={styles.dragDots}>⠿</span>}
         </div>
 
         {/* ── Content ── */}
