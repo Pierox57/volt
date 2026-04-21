@@ -10,7 +10,7 @@ import {
 import type { ZoneSystem } from './zones';
 import { createDefaultZoneSystem, getZoneIndexForWatts } from './zones';
 import Timeline       from './components/Timeline';
-import BlockEditor    from './components/BlockEditor';
+import BlockToolbar   from './components/BlockToolbar';
 import ShortcutHelper from './components/ShortcutHelper';
 import ZoneSettings   from './components/ZoneSettings';
 import { useKeyboard } from './hooks/useKeyboard';
@@ -146,12 +146,12 @@ export default function App() {
 
   /* ── Group edit ─────────────────────────────────────────────────────────── */
 
-  const handleDurationChange = useCallback(
-    (delta: number) => {
+  const handleAbsoluteDurationChange = useCallback(
+    (duration: number) => {
       setBlocks((prev) =>
         prev.map((b) =>
           selectedIds.has(b.id)
-            ? { ...b, duration: Math.max(MIN_DURATION, b.duration + delta) }
+            ? { ...b, duration: Math.max(MIN_DURATION, duration) }
             : b,
         ),
       );
@@ -308,12 +308,12 @@ export default function App() {
         />
       </main>
 
-      {/* ══ Block editor (floating) ════════════════════════════════════════ */}
+      {/* ══ Block toolbar (floating, anchored above selected blocks) ══════════ */}
       {selectedBlocks.length > 0 && (
-        <BlockEditor
+        <BlockToolbar
           selectedBlocks={selectedBlocks}
           zoneSystem={zoneSystem}
-          onDurationChange={handleDurationChange}
+          onAbsoluteDurationChange={handleAbsoluteDurationChange}
           onZoneChange={handleZoneChange}
           onWattsChange={handleBlockEditorWattsChange}
           onDelete={handleDelete}
