@@ -8,7 +8,7 @@ import {
   generateId,
 } from './types';
 import type { ZoneSystem } from './zones';
-import { createDefaultZoneSystem } from './zones';
+import { createDefaultZoneSystem, getZoneIndexForWatts } from './zones';
 import Timeline       from './components/Timeline';
 import BlockEditor    from './components/BlockEditor';
 import ShortcutHelper from './components/ShortcutHelper';
@@ -111,9 +111,13 @@ export default function App() {
 
   const handleWattsChange = useCallback((id: string, watts: number) => {
     setBlocks((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, watts } : b)),
+      prev.map((b) => {
+        if (b.id !== id) return b;
+        const zoneIdx = getZoneIndexForWatts(watts, zoneSystem.zones);
+        return { ...b, watts, zone: ZONES[zoneIdx] };
+      }),
     );
-  }, []);
+  }, [zoneSystem.zones]);
 
   /* ── Delete ─────────────────────────────────────────────────────────────── */
 
@@ -168,16 +172,28 @@ export default function App() {
   const handleBlockEditorWattsChange = useCallback(
     (watts: number) => {
       setBlocks((prev) =>
-        prev.map((b) => (selectedIds.has(b.id) ? { ...b, watts } : b)),
+        prev.map((b) => {
+          if (!selectedIds.has(b.id)) return b;
+          const zoneIdx = getZoneIndexForWatts(watts, zoneSystem.zones);
+          return { ...b, watts, zone: ZONES[zoneIdx] };
+        }),
       );
     },
-    [selectedIds],
+    [selectedIds, zoneSystem.zones],
   );
 
   /* ── Zone system ────────────────────────────────────────────────────────── */
 
   const handleZoneSystemChange = useCallback((sys: ZoneSystem) => {
     setZoneSystem(sys);
+    // Recompute zone labels for blocks with explicit watts when boundaries shift
+    setBlocks((prev) =>
+      prev.map((b) => {
+        if (b.watts === undefined) return b;
+        const zoneIdx = getZoneIndexForWatts(b.watts, sys.zones);
+        return { ...b, zone: ZONES[zoneIdx] };
+      }),
+    );
   }, []);
 
   /* ── Drag & drop ────────────────────────────────────────────────────────── */
