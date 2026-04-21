@@ -129,7 +129,21 @@ export default function Timeline({
     ? blockData[blocks.indexOf(activeBlock)]
     : null;
 
-  /* ── Internal drag end (reorder + notify parent) ─────────────────────── */
+  /* ── Internal drag start (capture exact dimensions) ─────────────────── */
+  const handleDragStart = useCallback(
+    (e: DragStartEvent) => {
+      const id = String(e.active.id);
+      const el = document.querySelector(`[data-block-id="${CSS.escape(id)}"]`);
+      const rect = el?.getBoundingClientRect();
+      setActiveDimensions(
+        rect ? { width: rect.width, height: rect.height } : null,
+      );
+      onDragStart(id);
+    },
+    [onDragStart],
+  );
+
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       setActiveDimensions(null);
@@ -149,13 +163,7 @@ export default function Timeline({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={(e: DragStartEvent) => {
-            const rect = e.active.rect.current?.initial;
-            setActiveDimensions(
-              rect ? { width: rect.width, height: rect.height } : null,
-            );
-            onDragStart(String(e.active.id));
-          }}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         {/* ── Ruler row (full width, spans scale gap + blocks area) ── */}
@@ -282,6 +290,7 @@ export default function Timeline({
             <div
               className={styles.dragOverlay}
               style={{
+                boxSizing:   'border-box',
                 width:       activeDimensions?.width  ?? 200,
                 height:      activeDimensions?.height ?? Math.max(MIN_BLOCK_HEIGHT, activeBlockData.heightRatio * CANVAS_HEIGHT),
                 background:  ZONE_CONFIG[activeBlock.zone].bg,
