@@ -193,7 +193,6 @@
   justify-content: center;
   gap: 2px;
   box-shadow: var(--shadow-xl);
-  transform: rotate(1.5deg) scale(1.04);
   cursor: grabbing;
   padding: var(--space-2);
 }

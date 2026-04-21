@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -64,6 +64,7 @@ export default function Timeline({
 }: TimelineProps) {
   const wrapperRef   = useRef<HTMLDivElement>(null);
   const blocksRowRef = useRef<HTMLDivElement>(null);
+  const [activeDimensions, setActiveDimensions] = useState<{ width: number; height: number } | null>(null);
 
   const totalDuration   = blocks.reduce((s, b) => s + b.duration, 0);
   const interval        = markerInterval(totalDuration);
@@ -131,6 +132,7 @@ export default function Timeline({
   /* ── Internal drag end (reorder + notify parent) ─────────────────────── */
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      setActiveDimensions(null);
       const { active, over } = event;
       if (over && active.id !== over.id) {
         const oldIndex = blocks.findIndex((b) => b.id === active.id);
@@ -147,7 +149,13 @@ export default function Timeline({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={(e: DragStartEvent) => onDragStart(String(e.active.id))}
+        onDragStart={(e: DragStartEvent) => {
+            const rect = e.active.rect.current?.initial;
+            setActiveDimensions(
+              rect ? { width: rect.width, height: rect.height } : null,
+            );
+            onDragStart(String(e.active.id));
+          }}
         onDragEnd={handleDragEnd}
       >
         {/* ── Ruler row (full width, spans scale gap + blocks area) ── */}
@@ -274,8 +282,8 @@ export default function Timeline({
             <div
               className={styles.dragOverlay}
               style={{
-                width:       200,
-                height:      Math.max(MIN_BLOCK_HEIGHT, activeBlockData.heightRatio * CANVAS_HEIGHT),
+                width:       activeDimensions?.width  ?? 200,
+                height:      activeDimensions?.height ?? Math.max(MIN_BLOCK_HEIGHT, activeBlockData.heightRatio * CANVAS_HEIGHT),
                 background:  ZONE_CONFIG[activeBlock.zone].bg,
                 borderColor: ZONE_CONFIG[activeBlock.zone].border,
                 color:       ZONE_CONFIG[activeBlock.zone].color,
