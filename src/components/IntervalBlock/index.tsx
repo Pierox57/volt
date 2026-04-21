@@ -1,52 +1,82 @@
 import { useCallback, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Block } from '../../types';
+import type { Block, ZoneRange } from '../../types';
 import {
   ZONE_CONFIG,
-  PX_PER_SECOND,
   MIN_DURATION,
   SNAP_GRID,
+  CANVAS_HEIGHT,
+  MIN_BLOCK_HEIGHT,
+  TOTAL_ZONES,
   formatDuration,
 } from '../../types';
+import { smartSnapWatts } from '../../zones';
 import styles from './IntervalBlock.module.css';
 
 interface IntervalBlockProps {
   block: Block;
   isSelected: boolean;
   isActive: boolean;
+  /** Width as a CSS value, e.g. "12.5%" */
+  widthStyle: string;
+  /** Height as a 0–1 ratio of the blocks-row container height */
+  heightRatio: number;
+  /** The effective watts for this block (computed by parent) */
+  effectiveWatts: number;
+  /** Zone ranges for smart snap */
+  zoneRanges: ZoneRange[];
+  /** Watts values of neighbouring blocks for smart snap */
+  neighborWatts: number[];
+  /** Max display watts (scale ceiling) */
+  maxDisplayWatts: number;
   onSelect: (id: string, mode: 'single' | 'multi') => void;
   onResize: (id: string, duration: number) => void;
+  onWattsChange: (id: string, watts: number) => void;
 }
 
 export default function IntervalBlock({
   block,
   isSelected,
   isActive,
+  widthStyle,
+  heightRatio,
+  effectiveWatts,
+  zoneRanges,
+  neighborWatts,
+  maxDisplayWatts,
   onSelect,
   onResize,
+  onWattsChange,
 }: IntervalBlockProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: block.id });
 
-  const resizingRef = useRef(false);
-  const startXRef   = useRef(0);
-  const startDurRef = useRef(0);
+  const resizingWidthRef  = useRef(false);
+  const resizingHeightRef = useRef(false);
+  const startXRef         = useRef(0);
+  const startYRef         = useRef(0);
+  const startDurRef       = useRef(0);
+  const startWattsRef     = useRef(0);
 
-  const zone  = ZONE_CONFIG[block.zone];
-  const width = block.duration * PX_PER_SECOND;
+  const zone = ZONE_CONFIG[block.zone];
 
   const sortableStyle: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? 'none' : (transition ?? undefined),
-    width,
-    minWidth: MIN_DURATION * PX_PER_SECOND,
+    // flexShrink: 1 lets blocks compress proportionally so the last block isn't clipped
+    flexShrink: 1,
+    flexGrow: 0,
+    flexBasis: widthStyle,
     opacity: isDragging ? 0.35 : 1,
     zIndex: isDragging ? 0 : undefined,
+    // Blocks grow upward from the bottom of the row
+    alignSelf: 'flex-end',
+    // Use CSS max() so blocks have both a minimum pixel height and a % of the container
+    height: `max(${MIN_BLOCK_HEIGHT}px, ${(heightRatio * 100).toFixed(2)}%)`,
   };
 
-  /* ── Selection ─────────────────────────────────────────────────────────── */
-
+  /* ── Selection ──────────────────────────────────────────────────────────── */
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -59,27 +89,28 @@ export default function IntervalBlock({
     [block.id, onSelect],
   );
 
-  /* ── Resize ────────────────────────────────────────────────────────────── */
-
-  const handleResizePointerDown = useCallback(
+  /* ── Width resize (horizontal) ──────────────────────────────────────────── */
+  const handleWidthResizePointerDown = useCallback(
     (e: React.PointerEvent) => {
       e.stopPropagation();
       e.currentTarget.setPointerCapture(e.pointerId);
-      resizingRef.current = true;
-      startXRef.current   = e.clientX;
-      startDurRef.current = block.duration;
+      resizingWidthRef.current = true;
+      startXRef.current        = e.clientX;
+      startDurRef.current      = block.duration;
 
       const onPointerMove = (ev: PointerEvent) => {
-        if (!resizingRef.current) return;
+        if (!resizingWidthRef.current) return;
+        // Width is proportional; we keep pixel-per-second logic for delta
         const delta       = ev.clientX - startXRef.current;
-        const rawDuration = startDurRef.current + delta / PX_PER_SECOND;
+        // Treat as if 1px = 1/1.5 second (rough heuristic since layout is now proportional)
+        const rawDuration = startDurRef.current + (delta / 1.5);
         const snapped     = Math.round(rawDuration / SNAP_GRID) * SNAP_GRID;
         const clamped     = Math.max(MIN_DURATION, snapped);
         onResize(block.id, clamped);
       };
 
       const onPointerUp = () => {
-        resizingRef.current = false;
+        resizingWidthRef.current = false;
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup',   onPointerUp);
       };
@@ -90,10 +121,50 @@ export default function IntervalBlock({
     [block.id, block.duration, onResize],
   );
 
-  /* ── Derived display values ────────────────────────────────────────────── */
+  /* ── Height resize (vertical – smart snap) ──────────────────────────────── */
+  const handleHeightResizePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.stopPropagation();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      resizingHeightRef.current = true;
+      startYRef.current         = e.clientY;
+      startWattsRef.current     = effectiveWatts;
 
-  const isNarrow = width < 100;
-  const isTiny   = width < 60;
+      // Get the actual container height at drag-start time for accurate px-per-watt mapping
+      const containerEl = (e.currentTarget.closest('[data-blocks-row]') as HTMLElement | null);
+      const containerH  = containerEl?.clientHeight ?? CANVAS_HEIGHT;
+      // px per watt for this canvas
+      const pxPerWatt = containerH / maxDisplayWatts;
+
+      const onPointerMove = (ev: PointerEvent) => {
+        if (!resizingHeightRef.current) return;
+        // Dragging UP = increase watts
+        const deltaY      = startYRef.current - ev.clientY;
+        const deltaWatts  = deltaY / pxPerWatt;
+        const rawWatts    = startWattsRef.current + deltaWatts;
+        const snapped     = smartSnapWatts(rawWatts, zoneRanges, neighborWatts);
+        const minWatts    = zoneRanges[0]?.min ?? 0;
+        const clamped     = Math.max(minWatts, Math.min(maxDisplayWatts, snapped));
+        onWattsChange(block.id, Math.round(clamped));
+      };
+
+      const onPointerUp = () => {
+        resizingHeightRef.current = false;
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup',   onPointerUp);
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup',   onPointerUp);
+    },
+    [block.id, effectiveWatts, zoneRanges, neighborWatts, maxDisplayWatts, onWattsChange],
+  );
+
+  /* ── Derived display values ─────────────────────────────────────────────── */
+  // Use CANVAS_HEIGHT as the reference for content-hiding thresholds (same baseline as drag overlay)
+  const approxHeightPx = Math.max(MIN_BLOCK_HEIGHT, heightRatio * CANVAS_HEIGHT);
+  const isTiny      = approxHeightPx < 48;
+  const isVerySmall = approxHeightPx < 32;
 
   const blockClass = [
     styles.block,
@@ -111,47 +182,60 @@ export default function IntervalBlock({
           background:  zone.bg,
           borderColor: zone.border,
           color:       zone.color,
+          height:      '100%',
         }}
         onClick={handleClick}
         role="button"
         tabIndex={0}
         aria-pressed={isSelected}
-        aria-label={`${zone.label} – ${formatDuration(block.duration)}`}
+        aria-label={`${zone.label} – ${formatDuration(block.duration)} – ${effectiveWatts}W`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') handleClick(e as unknown as React.MouseEvent);
         }}
       >
-        {/* Drag handle – top strip */}
+        {/* ── Height resize handle (top, for vertical resize) ── */}
+        <div
+          className={styles.heightResizeHandle}
+          onPointerDown={handleHeightResizePointerDown}
+          title={`${effectiveWatts}W – glisser pour ajuster`}
+        >
+          <span className={styles.heightResizeDots} />
+        </div>
+
+        {/* ── Drag handle ── */}
         <div className={styles.dragHandle} {...attributes} {...listeners}>
           {!isTiny && <span className={styles.dragDots}>⠿</span>}
         </div>
 
-        {/* Content */}
-        {!isTiny && (
+        {/* ── Content ── */}
+        {!isVerySmall && (
           <div className={styles.content}>
-            {!isNarrow && (
+            {!isTiny && (
               <span className={styles.zoneLabel}>{zone.label}</span>
             )}
             <span className={styles.duration}>{formatDuration(block.duration)}</span>
+            {!isTiny && (
+              <span className={styles.wattsLabel}>{effectiveWatts}W</span>
+            )}
           </div>
         )}
 
-        {/* Intensity bar */}
+        {/* ── Intensity bar (left accent) ── */}
         <div
           className={styles.intensityBar}
-          style={{ height: `${zone.intensity * 20}%`, background: zone.border }}
+          style={{ height: `${(zone.intensity / TOTAL_ZONES) * 100}%`, background: zone.border }}
         />
 
-        {/* Resize handle */}
+        {/* ── Width resize handle (right edge) ── */}
         <div
           className={styles.resizeHandle}
-          onPointerDown={handleResizePointerDown}
-          title="Redimensionner"
+          onPointerDown={handleWidthResizePointerDown}
+          title="Redimensionner la durée"
         >
           <span className={styles.resizeDots} />
         </div>
 
-        {/* Selection ring overlay */}
+        {/* ── Selection ring overlay ── */}
         {isSelected && <div className={styles.selectionRing} />}
       </div>
     </div>
