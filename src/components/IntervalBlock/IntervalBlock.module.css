@@ -17,6 +17,7 @@
   transition:
     box-shadow var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
+    filter 100ms ease,
     opacity var(--duration-fast) var(--ease-out),
     height var(--duration-fast) var(--ease-out);
   box-shadow: var(--shadow-sm);
@@ -43,6 +44,7 @@
 .block.selected {
   border-color: rgba(255, 255, 255, 0.9);
   box-shadow: var(--shadow-md), 0 0 0 3px var(--color-accent);
+  filter: brightness(1.06);
 }
 
 .block.active {
