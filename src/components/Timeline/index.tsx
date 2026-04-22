@@ -35,16 +35,32 @@ interface TimelineProps {
   onDragEnd: (event: DragEndEvent) => void;
 }
 
-function fmtTime(s: number): string {
+/**
+ * Format a time value (seconds) as mm:ss for short workouts, hh:mm for long.
+ * The format chosen is based on the total workout duration.
+ */
+function fmtTime(s: number, totalSeconds: number): string {
+  if (totalSeconds >= 3600) {
+    // Long workout → hh:mm
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    return `${h}:${m.toString().padStart(2, '0')}`;
+  }
+  // Short workout → mm:ss
   const m = Math.floor(s / 60);
-  if (s % 60 === 0) return `${m}min`;
-  return `${m}:${(s % 60).toString().padStart(2, '0')}`;
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Choose the most readable tick interval for the X axis based on total duration.
+ * Returns interval in seconds.
+ */
 function markerInterval(totalSeconds: number): number {
-  if (totalSeconds <= 600)  return 60;
-  if (totalSeconds <= 3600) return 300;
-  return 600;
+  if (totalSeconds < 1200)  return 60;   // < 20 min → every 1 min
+  if (totalSeconds < 3600)  return 300;  // 20–60 min → every 5 min
+  if (totalSeconds < 5400)  return 600;  // 60–90 min → every 10 min
+  return 900;                            // > 90 min → every 15 min
 }
 
 const ZONE_KEYS = ['z1','z2','z3','z4','z5','z6','z7'] as const;
@@ -70,7 +86,14 @@ export default function Timeline({
   const interval        = markerInterval(totalDuration);
   const maxDisplayWatts = getMaxDisplayWatts(zoneSystem.zones);
 
-  // Time ruler markers
+  /**
+   * The full visible duration range = workout duration + one extra interval.
+   * This guarantees breathing room after the last block so the end is always
+   * clearly visible with at least one graduation mark beyond it.
+   */
+  const visibleDuration = Math.max(totalDuration + interval, interval);
+
+  // Time ruler markers: 0 … totalDuration + interval (one extra mark)
   const markers: number[] = [];
   for (let t = 0; t <= totalDuration + interval; t += interval) {
     markers.push(t);
@@ -80,7 +103,6 @@ export default function Timeline({
   const blockData = blocks.map((block, idx) => {
     const zoneIdx     = ZONE_KEYS.indexOf(block.zone as typeof ZONE_KEYS[number]);
     const watts       = getBlockWatts(block.watts, zoneIdx >= 0 ? zoneIdx : 0, zoneSystem.zones);
-    // heightRatio 0–1: block visual height = max(MIN_BLOCK_HEIGHT px, heightRatio * container %)
     const heightRatio = wattsToHeightRatio(watts, maxDisplayWatts);
 
     // Neighbor watts for smart snap
@@ -166,32 +188,6 @@ export default function Timeline({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        {/* ── Ruler row (full width, spans scale gap + blocks area) ── */}
-        <div className={styles.rulerRow}>
-          {/* Blank cell to align ruler with blocks, not the scale */}
-          <div className={styles.scaleGap} />
-          {totalDuration > 0 && (
-            <div className={styles.ruler} data-timeline-bg="true">
-              {markers.map((t) => {
-                const leftPct = (t / totalDuration) * 100;
-                // First marker: left-align so "0min" label is not clipped
-                const transform = t === 0 ? 'translateX(0)' : 'translateX(-50%)';
-                return (
-                  <div
-                    key={t}
-                    className={styles.marker}
-                    style={{ left: `${leftPct}%`, transform }}
-                    data-timeline-bg="true"
-                  >
-                    <span className={styles.markerLabel}>{fmtTime(t)}</span>
-                    <div className={styles.markerLine} />
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
         {/* ── Content row: Scale + Blocks (fills remaining height) ── */}
         <div className={styles.contentRow}>
           {/* Vertical watts/hr scale – aligns directly with the blocks row */}
@@ -217,10 +213,34 @@ export default function Timeline({
                 className={styles.blocksRow}
                 data-blocks-row="true"
               >
-                {/* Zone boundary lines – thin horizontal guides replacing colored bands */}
+                {/* Zone bands – very-low-opacity colored fills per zone */}
+                <div className={styles.zoneBands} data-timeline-bg="true">
+                  {ZONE_KEYS.map((zoneKey, i) => {
+                    const range      = zoneSystem.zones[i];
+                    const cfg        = ZONE_CONFIG[zoneKey];
+                    const bottomPct  = (Math.min(range.min, maxDisplayWatts) / maxDisplayWatts) * 100;
+                    const topPct     = Math.min((range.max / maxDisplayWatts) * 100, 100);
+                    const heightPct  = Math.max(0, topPct - bottomPct);
+                    return (
+                      <div
+                        key={zoneKey}
+                        className={styles.zoneBand}
+                        data-timeline-bg="true"
+                        style={{
+                          bottom: `${bottomPct}%`,
+                          height: `${heightPct}%`,
+                          background: cfg.bg,
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Zone boundary lines – dashed horizontal rules */}
                 <div className={styles.zoneLines} data-timeline-bg="true">
                   {zoneSystem.zones.map((range, i) => {
-                    const bottomPct = Math.min((range.min / maxDisplayWatts) * 100, 100);
+                    const bottomPct = (Math.min(range.min, maxDisplayWatts) / maxDisplayWatts) * 100;
+                    if (bottomPct <= 0 || bottomPct >= 100) return null;
                     return (
                       <div
                         key={i}
@@ -235,9 +255,7 @@ export default function Timeline({
                 {/* Blocks */}
                 {blocks.map((block, idx) => {
                   const { watts, heightRatio, neighborWatts } = blockData[idx];
-                  const widthPct = totalDuration > 0
-                    ? `${(block.duration / totalDuration) * 100}%`
-                    : '100%';
+                  const widthPct = `${(block.duration / visibleDuration) * 100}%`;
                   return (
                     <IntervalBlock
                       key={block.id}
@@ -282,6 +300,36 @@ export default function Timeline({
               </div>
             )}
           </div>
+        </div>
+
+        {/* ── X-axis ruler (sits below the blocks canvas, full width) ── */}
+        <div className={styles.rulerRow}>
+          {/* Blank cell that aligns with the scale column */}
+          <div className={styles.scaleGap} />
+          {totalDuration > 0 && (
+            <div className={styles.ruler} data-timeline-bg="true">
+              {markers.map((t, markerIdx) => {
+                const leftPct = (t / visibleDuration) * 100;
+                // First marker: left-align; last: right-align; others: center
+                let transform = 'translateX(-50%)';
+                if (markerIdx === 0)                    transform = 'translateX(0)';
+                if (markerIdx === markers.length - 1)   transform = 'translateX(-100%)';
+                return (
+                  <div
+                    key={t}
+                    className={styles.marker}
+                    style={{ left: `${leftPct}%`, transform }}
+                    data-timeline-bg="true"
+                  >
+                    <div className={styles.markerLine} />
+                    <span className={styles.markerLabel}>
+                      {fmtTime(t, totalDuration)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── Drag overlay ── */}

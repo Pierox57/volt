@@ -1,7 +1,10 @@
 /**
- * Scale – vertical axis showing watts values and zone colour bands.
- * Positioned to the left of the timeline blocks area.
- * Uses percentage-based positioning so it adapts to any container height.
+ * Scale – Y-axis showing zone color bands, labels (Z1–Z7 + range values),
+ * and tick marks at each zone boundary.
+ *
+ * All positioning is percentage-based so it adapts to any container height.
+ * Transitions on band positions provide a smooth animation when switching
+ * between watts and bpm mode.
  */
 import type { ZoneRange } from '../../types';
 import { ZONE_CONFIG, ZONES } from '../../types';
@@ -14,50 +17,40 @@ interface ScaleProps {
 }
 
 export default function Scale({ zones, maxDisplayWatts, mode }: ScaleProps) {
-  // Collect unique boundary values to display as graduation lines
-  const boundaries: number[] = [];
-  for (const z of zones) {
-    if (!boundaries.includes(z.min)) boundaries.push(z.min);
-    if (!boundaries.includes(z.max) && z.max <= maxDisplayWatts * 1.1) boundaries.push(z.max);
-  }
-  boundaries.sort((a, b) => a - b);
+  const unit = mode === 'hr' ? 'bpm' : 'w';
 
   return (
     <div className={styles.scale}>
-      {/* Zone color bands – percentage positioning, fills container height */}
       {ZONES.map((zoneKey, i) => {
-        const range = zones[i];
-        const cfg = ZONE_CONFIG[zoneKey];
-        const bottomPct = Math.min(range.min / maxDisplayWatts, 1) * 100;
-        const topPct    = Math.min(range.max / maxDisplayWatts, 1) * 100;
-        const heightPct = Math.max(0, topPct - bottomPct);
+        const range      = zones[i];
+        const cfg        = ZONE_CONFIG[zoneKey];
+        const bottomPct  = (Math.min(range.min, maxDisplayWatts) / maxDisplayWatts) * 100;
+        const topPct     = Math.min((range.max / maxDisplayWatts) * 100, 100);
+        const heightPct  = Math.max(0, topPct - bottomPct);
+        const isLast     = i === ZONES.length - 1;
+        const rangeLabel = isLast
+          ? `${range.min}${unit}+`
+          : `${range.min}–${range.max}${unit}`;
+
         return (
           <div
             key={zoneKey}
             className={styles.zoneBand}
-            style={{
-              bottom: `${bottomPct}%`,
-              height: `${heightPct}%`,
-              background: cfg.bg,
-              opacity: 0.3,
-            }}
-          />
-        );
-      })}
-
-      {/* Graduation lines + labels – percentage positioning */}
-      {boundaries.map((val) => {
-        const bottomPct = Math.min(val / maxDisplayWatts, 1) * 100;
-        return (
-          <div
-            key={val}
-            className={styles.graduation}
-            style={{ bottom: `${bottomPct}%` }}
+            style={{ bottom: `${bottomPct}%`, height: `${heightPct}%` }}
           >
-            <span className={styles.label}>
-              {val}{mode === 'watts' ? 'W' : ''}
-            </span>
-            <div className={styles.tick} />
+            {/* Very-low-opacity color fill */}
+            <div className={styles.zoneFill} style={{ background: cfg.bg }} />
+
+            {/* Boundary line at the bottom of this band */}
+            <div className={styles.boundaryLine} />
+
+            {/* Labels: zone number + range value */}
+            <div className={styles.labels}>
+              <span className={styles.zoneName} style={{ color: cfg.border }}>
+                Z{i + 1}
+              </span>
+              <span className={styles.zoneRange}>{rangeLabel}</span>
+            </div>
           </div>
         );
       })}

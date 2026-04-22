@@ -11,56 +11,6 @@
   overflow: hidden;
 }
 
-/* ─── Ruler row (full width, sits above scale + blocks) ───────────────────── */
-.rulerRow {
-  display: flex;
-  flex-direction: row;
-  flex-shrink: 0;
-  height: 36px;
-  border-bottom: 1px solid var(--color-border);
-  user-select: none;
-}
-
-/* Placeholder that lines up with the scale column */
-.scaleGap {
-  width: 48px;
-  flex-shrink: 0;
-  border-right: 1px solid var(--color-border);
-}
-
-/* ─── Ruler ───────────────────────────────────────────────────────────────── */
-.ruler {
-  flex: 1;
-  position: relative;
-  height: 100%;
-  padding: 0 var(--space-2);
-  overflow: visible;  /* let labels breathe */
-}
-
-.marker {
-  position: absolute;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.markerLabel {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  line-height: 24px;
-  font-family: var(--font-mono);
-}
-
-.markerLine {
-  width: 1px;
-  height: 8px;
-  background: var(--color-border);
-}
-
 /* ─── Content row: Scale + blocks area ────────────────────────────────────── */
 .contentRow {
   display: flex;
@@ -94,22 +44,94 @@
   min-height: 80px;
 }
 
-/* ─── Zone horizontal lines (replaces colored background bands) ───────────── */
+/* ─── Zone bands (very-low-opacity colored fills per zone) ────────────────── */
+.zoneBands {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.zoneBand {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  transition:
+    bottom var(--duration-normal) var(--ease-in-out),
+    height var(--duration-normal) var(--ease-in-out);
+}
+
+/* ─── Zone boundary lines (dashed horizontal rules) ──────────────────────── */
 .zoneLines {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 0;
 }
 
-/* Single thin line at each zone boundary */
 .zoneLine {
   position: absolute;
   left: 0;
   right: 0;
-  height: 1px;
-  background: var(--color-border-strong);
+  height: 0;
+  border-top: 1px dashed var(--color-border-strong);
   opacity: 0.45;
   pointer-events: none;
+  transition: bottom var(--duration-normal) var(--ease-in-out);
+}
+
+/* ─── X-axis ruler row (sits below the blocks canvas) ────────────────────── */
+.rulerRow {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  height: 36px;
+  border-top: 1px solid var(--color-border-strong);
+  user-select: none;
+}
+
+/* Placeholder that lines up with the Y-axis scale column */
+.scaleGap {
+  width: 88px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+}
+
+/* ─── Ruler ───────────────────────────────────────────────────────────────── */
+.ruler {
+  flex: 1;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.marker {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.markerLine {
+  width: 1px;
+  height: 6px;
+  background: var(--color-border-strong);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.markerLabel {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  line-height: 1.4;
+  font-family: var(--font-mono);
+  margin-top: 2px;
 }
 
 /* ─── Add-block zone ──────────────────────────────────────────────────────── */

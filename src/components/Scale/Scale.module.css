@@ -1,42 +1,76 @@
+/* ─── Y-axis scale column ─────────────────────────────────────────────────── */
 .scale {
   position: relative;
-  width: 48px;
+  width: 88px;
   flex-shrink: 0;
-  overflow: visible;  /* allow top graduation label to show */
+  overflow: hidden;
   border-right: 1px solid var(--color-border);
-  /* height is provided by flexbox align-items:stretch on the parent contentRow;
-     an explicit height:100% would fail because the parent has no definite px height */
+  /* height is provided by flexbox align-items:stretch on the parent contentRow */
 }
 
+/* ─── Zone band (absolute, stacked from bottom) ───────────────────────────── */
 .zoneBand {
   position: absolute;
   left: 0;
   right: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  transition:
+    bottom var(--duration-normal) var(--ease-in-out),
+    height var(--duration-normal) var(--ease-in-out);
+}
+
+/* Very-low-opacity zone color fill */
+.zoneFill {
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
   pointer-events: none;
 }
 
-.graduation {
+/* Thin line at the bottom of each band (= zone boundary) */
+.boundaryLine {
   position: absolute;
+  left: 0;
   right: 0;
-  display: flex;
-  align-items: center;
-  /* center the label on the graduation line */
-  transform: translateY(50%);
+  bottom: 0;
+  height: 1px;
+  background: var(--color-border-strong);
+  opacity: 0.55;
+  pointer-events: none;
 }
 
-.label {
-  font-size: 9px;
-  font-weight: 700;
+/* ─── Zone labels ─────────────────────────────────────────────────────────── */
+.labels {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0 2px var(--space-2);
+  gap: 1px;
+  overflow: hidden;
+  width: 100%;
+  pointer-events: none;
+}
+
+.zoneName {
+  font-size: 10px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  transition: color var(--duration-normal) var(--ease-in-out);
+}
+
+.zoneRange {
+  font-size: 8px;
+  font-weight: 600;
   font-family: var(--font-mono);
   color: var(--color-text-muted);
   white-space: nowrap;
-  padding-right: 4px;
-  line-height: 1;
+  line-height: 1.2;
+  transition: color var(--duration-normal) var(--ease-in-out);
 }
 
-.tick {
-  width: 6px;
-  height: 1px;
-  background: var(--color-border-strong);
-  flex-shrink: 0;
-}

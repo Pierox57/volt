@@ -115,12 +115,13 @@ export function getBlockWatts(
 }
 
 /**
- * The maximum watts value to display on the scale.
- * Uses the top of Z6 so that Z7 (sprint) is shown but doesn't dominate.
+ * The maximum watts (or BPM) value to display on the Y axis.
+ * Uses the bottom of Z7 + 25 % headroom so that all 7 zones are clearly
+ * visible as bands on the scale — Z7 is never collapsed to zero height.
  */
 export function getMaxDisplayWatts(zones: ZoneRange[]): number {
-  // top of Z6 = zones[5].max
-  return zones[5].max;
+  // zones[6].min === zones[5].max (top of Z6 / bottom of Z7)
+  return Math.round(zones[6].min * 1.25);
 }
 
 /**
