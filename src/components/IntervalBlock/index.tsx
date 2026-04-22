@@ -52,12 +52,14 @@ export default function IntervalBlock({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: block.id });
 
-  const resizingWidthRef  = useRef(false);
-  const resizingHeightRef = useRef(false);
-  const startXRef         = useRef(0);
-  const startYRef         = useRef(0);
-  const startDurRef       = useRef(0);
-  const startWattsRef     = useRef(0);
+  const resizingWidthRef   = useRef(false);
+  const resizingHeightRef  = useRef(false);
+  const startXRef          = useRef(0);
+  const startYRef          = useRef(0);
+  const startDurRef        = useRef(0);
+  const startWattsRef      = useRef(0);
+  const widthHandleRef     = useRef<HTMLDivElement>(null);
+  const heightHandleRef    = useRef<HTMLDivElement>(null);
 
   const zone = ZONE_CONFIG[block.zone];
 
@@ -97,6 +99,7 @@ export default function IntervalBlock({
       resizingWidthRef.current = true;
       startXRef.current        = e.clientX;
       startDurRef.current      = block.duration;
+      widthHandleRef.current?.classList.add(styles.dragging);
 
       const onPointerMove = (ev: PointerEvent) => {
         if (!resizingWidthRef.current) return;
@@ -111,6 +114,7 @@ export default function IntervalBlock({
 
       const onPointerUp = () => {
         resizingWidthRef.current = false;
+        widthHandleRef.current?.classList.remove(styles.dragging);
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup',   onPointerUp);
       };
@@ -129,6 +133,7 @@ export default function IntervalBlock({
       resizingHeightRef.current = true;
       startYRef.current         = e.clientY;
       startWattsRef.current     = effectiveWatts;
+      heightHandleRef.current?.classList.add(styles.dragging);
 
       // Get the actual container height at drag-start time for accurate px-per-watt mapping
       const containerEl = (e.currentTarget.closest('[data-blocks-row]') as HTMLElement | null);
@@ -150,6 +155,7 @@ export default function IntervalBlock({
 
       const onPointerUp = () => {
         resizingHeightRef.current = false;
+        heightHandleRef.current?.classList.remove(styles.dragging);
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup',   onPointerUp);
       };
@@ -197,11 +203,12 @@ export default function IntervalBlock({
       >
         {/* ── Height resize handle (top, for vertical resize) ── */}
         <div
+          ref={heightHandleRef}
           className={styles.heightResizeHandle}
           onPointerDown={handleHeightResizePointerDown}
           title={`${effectiveWatts}W – glisser pour ajuster`}
         >
-          <span className={styles.heightResizeDots} />
+          <span className={styles.heightResizePill} />
         </div>
 
         {/* ── Content ── */}
@@ -225,11 +232,12 @@ export default function IntervalBlock({
 
         {/* ── Width resize handle (right edge) ── */}
         <div
+          ref={widthHandleRef}
           className={styles.resizeHandle}
           onPointerDown={handleWidthResizePointerDown}
           title="Redimensionner la durée"
         >
-          <span className={styles.resizeDots} />
+          <span className={styles.resizePill} />
         </div>
 
         {/* ── Selection ring overlay ── */}
