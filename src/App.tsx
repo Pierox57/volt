@@ -291,6 +291,8 @@ export default function App() {
           zoneSystem={zoneSystem}
           onBlocksChange={setBlocks}
           onSelect={handleSelect}
+          onDeselectAll={handleDeselectAll}
+          onLassoSelect={setSelectedIds}
           onAddBlock={handleAddBlock}
           onResizeBlock={handleResizeBlock}
           onWattsChange={handleWattsChange}

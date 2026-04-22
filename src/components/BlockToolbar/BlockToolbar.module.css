@@ -195,6 +195,15 @@
   appearance: textfield;
 }
 
+/* Disabled state (duration input in multi-select mode) */
+.editInput:disabled {
+  color: var(--color-text-muted);
+  background: var(--color-border);
+  border-color: transparent;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 /* ─── Edit action buttons (confirm / cancel) ────────────────────────────────── */
 .editActions {
   display: flex;

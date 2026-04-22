@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -28,6 +28,8 @@ interface TimelineProps {
   zoneSystem: ZoneSystem;
   onBlocksChange: (blocks: Block[]) => void;
   onSelect: (id: string, mode: 'single' | 'multi') => void;
+  onDeselectAll: () => void;
+  onLassoSelect: (ids: Set<string>) => void;
   onAddBlock: () => void;
   onResizeBlock: (id: string, duration: number) => void;
   onWattsChange: (id: string, watts: number) => void;
@@ -56,6 +58,8 @@ export default function Timeline({
   zoneSystem,
   onBlocksChange,
   onSelect,
+  onDeselectAll,
+  onLassoSelect,
   onAddBlock,
   onResizeBlock,
   onWattsChange,
@@ -65,6 +69,12 @@ export default function Timeline({
   const wrapperRef   = useRef<HTMLDivElement>(null);
   const blocksRowRef = useRef<HTMLDivElement>(null);
   const [activeDimensions, setActiveDimensions] = useState<{ width: number; height: number } | null>(null);
+
+  /* ── Lasso selection state ───────────────────────────────────────────────── */
+  const lassoStartRef      = useRef<{ x: number; y: number } | null>(null);
+  const isDraggingLassoRef = useRef(false);
+  const lassoPointerIdRef  = useRef<number | null>(null);
+  const [lassoRect, setLassoRect] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
 
   const totalDuration   = blocks.reduce((s, b) => s + b.duration, 0);
   const interval        = markerInterval(totalDuration);
@@ -103,19 +113,107 @@ export default function Timeline({
     return { watts, heightRatio, neighborWatts };
   });
 
-  /* ── Click on empty area → add block ──────────────────────────────────── */
-  const handleTimelineClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const target = e.target as HTMLElement;
-      if (
-        target === wrapperRef.current ||
-        target.dataset.timelineBg === 'true'
-      ) {
-        onAddBlock();
+  /* ── Cancel lasso on Escape key ─────────────────────────────────────────── */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && lassoStartRef.current) {
+        lassoStartRef.current     = null;
+        isDraggingLassoRef.current = false;
+        lassoPointerIdRef.current  = null;
+        setLassoRect(null);
+        // Selection cleared by the global useKeyboard Escape handler in App
       }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  /* ── Lasso pointer handlers ──────────────────────────────────────────────── */
+  const handleCanvasPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      // Don't start lasso when clicking on a block or a button (e.g., addZone)
+      if (target.closest('[data-block-id]') || target.closest('button')) return;
+      if (!wrapperRef.current) return;
+
+      const containerRect = wrapperRef.current.getBoundingClientRect();
+      const x = e.clientX - containerRect.left;
+      const y = e.clientY - containerRect.top;
+
+      lassoStartRef.current      = { x, y };
+      isDraggingLassoRef.current = false;
+      lassoPointerIdRef.current  = e.pointerId;
+      e.currentTarget.setPointerCapture(e.pointerId);
     },
-    [onAddBlock],
+    [],
   );
+
+  const handleCanvasPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!lassoStartRef.current || !wrapperRef.current) return;
+
+      const containerRect = wrapperRef.current.getBoundingClientRect();
+      const x = e.clientX - containerRect.left;
+      const y = e.clientY - containerRect.top;
+
+      const dx = x - lassoStartRef.current.x;
+      const dy = y - lassoStartRef.current.y;
+
+      // Only activate lasso after moving 4px to avoid accidental lasso on click
+      if (!isDraggingLassoRef.current && Math.sqrt(dx * dx + dy * dy) < 4) return;
+
+      isDraggingLassoRef.current = true;
+
+      const rect = { x1: lassoStartRef.current.x, y1: lassoStartRef.current.y, x2: x, y2: y };
+      setLassoRect(rect);
+
+      // Compute lasso bounds in container-relative coords
+      const lx1 = Math.min(rect.x1, rect.x2);
+      const lx2 = Math.max(rect.x1, rect.x2);
+      const ly1 = Math.min(rect.y1, rect.y2);
+      const ly2 = Math.max(rect.y1, rect.y2);
+
+      // Find all blocks that intersect the lasso
+      const ids = new Set<string>();
+      blocks.forEach((block) => {
+        const el = wrapperRef.current?.querySelector<HTMLElement>(
+          `[data-block-id="${CSS.escape(block.id)}"]`,
+        );
+        if (!el) return;
+        const br   = el.getBoundingClientRect();
+        const bLeft   = br.left   - containerRect.left;
+        const bRight  = br.right  - containerRect.left;
+        const bTop    = br.top    - containerRect.top;
+        const bBottom = br.bottom - containerRect.top;
+        if (bLeft < lx2 && bRight > lx1 && bTop < ly2 && bBottom > ly1) {
+          ids.add(block.id);
+        }
+      });
+      onLassoSelect(ids);
+    },
+    [blocks, onLassoSelect],
+  );
+
+  const handleCanvasPointerUp = useCallback(() => {
+    if (!lassoStartRef.current) return;
+
+    // Simple click on empty area (no drag) → deselect all
+    if (!isDraggingLassoRef.current) {
+      onDeselectAll();
+    }
+
+    lassoStartRef.current      = null;
+    isDraggingLassoRef.current = false;
+    lassoPointerIdRef.current  = null;
+    setLassoRect(null);
+  }, [onDeselectAll]);
+
+  const handleCanvasPointerCancel = useCallback(() => {
+    lassoStartRef.current      = null;
+    isDraggingLassoRef.current = false;
+    lassoPointerIdRef.current  = null;
+    setLassoRect(null);
+  }, []);
 
   /* ── dnd-kit sensors ──────────────────────────────────────────────────── */
   const sensors = useSensors(
@@ -205,9 +303,25 @@ export default function Timeline({
           <div
             ref={wrapperRef}
             className={styles.blocksArea}
-            onClick={handleTimelineClick}
+            onPointerDown={handleCanvasPointerDown}
+            onPointerMove={handleCanvasPointerMove}
+            onPointerUp={handleCanvasPointerUp}
+            onPointerCancel={handleCanvasPointerCancel}
+            style={lassoRect ? { cursor: 'crosshair' } : undefined}
             data-timeline-bg="true"
           >
+            {/* Lasso selection rectangle */}
+            {lassoRect && (
+              <div
+                className={styles.lassoRect}
+                style={{
+                  left:   Math.min(lassoRect.x1, lassoRect.x2),
+                  top:    Math.min(lassoRect.y1, lassoRect.y2),
+                  width:  Math.abs(lassoRect.x2 - lassoRect.x1),
+                  height: Math.abs(lassoRect.y2 - lassoRect.y1),
+                }}
+              />
+            )}
             <SortableContext
               items={blocks.map((b) => b.id)}
               strategy={horizontalListSortingStrategy}

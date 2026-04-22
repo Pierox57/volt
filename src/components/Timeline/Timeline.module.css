@@ -112,6 +112,16 @@
   pointer-events: none;
 }
 
+/* ─── Lasso selection rectangle ──────────────────────────────────────────── */
+.lassoRect {
+  position: absolute;
+  border: 1.5px solid var(--color-accent);
+  background: rgba(37, 99, 235, 0.06);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 2px;
+}
+
 /* ─── Add-block zone ──────────────────────────────────────────────────────── */
 .addZone {
   flex-shrink: 0;

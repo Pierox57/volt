@@ -153,15 +153,22 @@ export default function BlockToolbar({
   const [wattsInput, setWattsInput] = useState('');
 
   const durInputRef   = useRef<HTMLInputElement>(null);
+  const wattsInputRef = useRef<HTMLInputElement>(null);
   const toolbarRef    = useRef<HTMLDivElement>(null);
 
   const openEdit = useCallback(() => {
     setDurationInput(formatMmSs(displayDur));
     setWattsInput(String(displayWatts));
     setEditMode(true);
-    // Defer focus until the input is in the DOM after the state update
-    requestAnimationFrame(() => durInputRef.current?.focus());
-  }, [displayDur, displayWatts, setDurationInput, setWattsInput, setEditMode]);
+    // In multi-select mode duration is disabled – focus the watts input instead
+    requestAnimationFrame(() => {
+      if (count > 1) {
+        wattsInputRef.current?.focus();
+      } else {
+        durInputRef.current?.focus();
+      }
+    });
+  }, [count, displayDur, displayWatts]);
 
   const closeEdit = useCallback(() => setEditMode(false), []);
 
@@ -230,11 +237,13 @@ export default function BlockToolbar({
           <div className={styles.editRow}>
             {/* Duration input */}
             <div className={styles.editField}>
-              <label className={styles.editLabel}>Durée</label>
+              <label className={styles.editLabel}>
+                Durée{count > 1 ? ' (—)' : ''}
+              </label>
               <input
                 ref={durInputRef}
                 className={styles.editInput}
-                value={durationInput}
+                value={count > 1 ? '—' : durationInput}
                 onChange={(e) => setDurationInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') confirmEdit();
@@ -242,6 +251,7 @@ export default function BlockToolbar({
                 }}
                 placeholder="mm:ss"
                 aria-label="Durée"
+                disabled={count > 1}
               />
             </div>
 
@@ -253,6 +263,7 @@ export default function BlockToolbar({
                 <div className={styles.editField}>
                   <label className={styles.editLabel}>{unitLabel}</label>
                   <input
+                    ref={wattsInputRef}
                     className={styles.editInput}
                     type="number"
                     min={0}
