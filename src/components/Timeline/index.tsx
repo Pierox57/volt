@@ -134,8 +134,9 @@ export default function Timeline({
       const target = e.target as HTMLElement;
       // Don't start lasso when clicking on a block or a button (e.g., addZone)
       if (target.closest('[data-block-id]') || target.closest('button')) return;
+      if (!wrapperRef.current) return;
 
-      const containerRect = wrapperRef.current!.getBoundingClientRect();
+      const containerRect = wrapperRef.current.getBoundingClientRect();
       const x = e.clientX - containerRect.left;
       const y = e.clientY - containerRect.top;
 
@@ -149,9 +150,9 @@ export default function Timeline({
 
   const handleCanvasPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!lassoStartRef.current) return;
+      if (!lassoStartRef.current || !wrapperRef.current) return;
 
-      const containerRect = wrapperRef.current!.getBoundingClientRect();
+      const containerRect = wrapperRef.current.getBoundingClientRect();
       const x = e.clientX - containerRect.left;
       const y = e.clientY - containerRect.top;
 
@@ -175,7 +176,7 @@ export default function Timeline({
       // Find all blocks that intersect the lasso
       const ids = new Set<string>();
       blocks.forEach((block) => {
-        const el = wrapperRef.current!.querySelector<HTMLElement>(
+        const el = wrapperRef.current?.querySelector<HTMLElement>(
           `[data-block-id="${CSS.escape(block.id)}"]`,
         );
         if (!el) return;
