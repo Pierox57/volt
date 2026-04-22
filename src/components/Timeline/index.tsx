@@ -297,11 +297,11 @@ export default function Timeline({
                   <div
                     key={t}
                     className={styles.marker}
-                    style={{ left: `${leftPct}%`, transform }}
+                    style={{ left: `${leftPct}%` }}
                     data-timeline-bg="true"
                   >
                     <div className={styles.markerLine} />
-                    <span className={styles.markerLabel}>
+                    <span className={styles.markerLabel} style={{ transform }}>
                       {fmtTime(t, totalDuration)}
                     </span>
                   </div>
