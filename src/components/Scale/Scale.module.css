@@ -21,14 +21,6 @@
     height var(--duration-normal) var(--ease-in-out);
 }
 
-/* Very-low-opacity zone color fill */
-.zoneFill {
-  position: absolute;
-  inset: 0;
-  opacity: 0.05;
-  pointer-events: none;
-}
-
 /* Thin line at the bottom of each band (= zone boundary) */
 .boundaryLine {
   position: absolute;

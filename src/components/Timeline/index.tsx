@@ -213,29 +213,6 @@ export default function Timeline({
                 className={styles.blocksRow}
                 data-blocks-row="true"
               >
-                {/* Zone bands – very-low-opacity colored fills per zone */}
-                <div className={styles.zoneBands} data-timeline-bg="true">
-                  {ZONE_KEYS.map((zoneKey, i) => {
-                    const range      = zoneSystem.zones[i];
-                    const cfg        = ZONE_CONFIG[zoneKey];
-                    const bottomPct  = (Math.min(range.min, maxDisplayWatts) / maxDisplayWatts) * 100;
-                    const topPct     = Math.min((range.max / maxDisplayWatts) * 100, 100);
-                    const heightPct  = Math.max(0, topPct - bottomPct);
-                    return (
-                      <div
-                        key={zoneKey}
-                        className={styles.zoneBand}
-                        data-timeline-bg="true"
-                        style={{
-                          bottom: `${bottomPct}%`,
-                          height: `${heightPct}%`,
-                          background: cfg.bg,
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-
                 {/* Zone boundary lines – dashed horizontal rules */}
                 <div className={styles.zoneLines} data-timeline-bg="true">
                   {zoneSystem.zones.map((range, i) => {

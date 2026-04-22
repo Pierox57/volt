@@ -38,9 +38,6 @@ export default function Scale({ zones, maxDisplayWatts, mode }: ScaleProps) {
             className={styles.zoneBand}
             style={{ bottom: `${bottomPct}%`, height: `${heightPct}%` }}
           >
-            {/* Very-low-opacity color fill */}
-            <div className={styles.zoneFill} style={{ background: cfg.bg }} />
-
             {/* Boundary line at the bottom of this band */}
             <div className={styles.boundaryLine} />
 
