@@ -59,31 +59,44 @@
 .heightResizeHandle {
   position: absolute;
   top: 0;
-  left: 8px;
-  right: 8px;
-  height: 12px;
+  left: 0;
+  right: 0;
+  height: 16px;
   cursor: ns-resize;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 5;
   opacity: 0;
-  transition: opacity var(--duration-fast);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
 .block:hover .heightResizeHandle {
   opacity: 1;
 }
 
-.heightResizeDots {
+.heightResizePill {
   display: block;
-  width: 28px;
-  height: 3px;
-  background: currentColor;
-  border-radius: 2px;
-  opacity: 0.4;
-  box-shadow: 0 -4px 0 currentColor;
+  width: 24px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: var(--radius-full);
+  transition:
+    height var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.heightResizeHandle:hover .heightResizePill {
+  height: 6px;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+
+.heightResizeHandle.dragging .heightResizePill {
+  height: 6px;
+  background: var(--color-accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-accent) 65%, transparent);
 }
 
 /* ─── Content ─────────────────────────────────────────────────────────────── */
@@ -150,9 +163,7 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity var(--duration-fast), background var(--duration-fast);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  background: rgba(0, 0, 0, 0.08);
+  transition: opacity var(--duration-fast) var(--ease-out);
   z-index: 4;
 }
 
@@ -160,17 +171,28 @@
   opacity: 1;
 }
 
-.resizeHandle:hover {
-  background: rgba(0, 0, 0, 0.18) !important;
+.resizePill {
+  display: block;
+  width: 4px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: var(--radius-full);
+  transition:
+    width var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
 }
 
-.resizeDots {
-  display: block;
-  width: 3px;
-  height: 18px;
-  border-left: 2px dotted currentColor;
-  border-right: 2px dotted currentColor;
-  opacity: 0.45;
+.resizeHandle:hover .resizePill {
+  width: 6px;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+
+.resizeHandle.dragging .resizePill {
+  width: 6px;
+  background: var(--color-accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-accent) 65%, transparent);
 }
 
 /* ─── Selection ring overlay ──────────────────────────────────────────────── */
