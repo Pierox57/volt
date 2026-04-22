@@ -175,7 +175,7 @@ export default function IntervalBlock({
     .join(' ');
 
   return (
-    <div ref={setNodeRef} style={sortableStyle} className={styles.wrapper}>
+    <div ref={setNodeRef} style={sortableStyle} className={styles.wrapper} data-block-id={block.id}>
       <div
         className={blockClass}
         style={{

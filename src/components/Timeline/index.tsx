@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -64,6 +64,7 @@ export default function Timeline({
 }: TimelineProps) {
   const wrapperRef   = useRef<HTMLDivElement>(null);
   const blocksRowRef = useRef<HTMLDivElement>(null);
+  const [activeDimensions, setActiveDimensions] = useState<{ width: number; height: number } | null>(null);
 
   const totalDuration   = blocks.reduce((s, b) => s + b.duration, 0);
   const interval        = markerInterval(totalDuration);
@@ -128,9 +129,24 @@ export default function Timeline({
     ? blockData[blocks.indexOf(activeBlock)]
     : null;
 
-  /* ── Internal drag end (reorder + notify parent) ─────────────────────── */
+  /* ── Internal drag start (capture exact dimensions) ─────────────────── */
+  const handleDragStart = useCallback(
+    (e: DragStartEvent) => {
+      const id = String(e.active.id);
+      const el = document.querySelector(`[data-block-id="${CSS.escape(id)}"]`);
+      const rect = el?.getBoundingClientRect();
+      setActiveDimensions(
+        rect ? { width: rect.width, height: rect.height } : null,
+      );
+      onDragStart(id);
+    },
+    [onDragStart],
+  );
+
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      setActiveDimensions(null);
       const { active, over } = event;
       if (over && active.id !== over.id) {
         const oldIndex = blocks.findIndex((b) => b.id === active.id);
@@ -147,7 +163,7 @@ export default function Timeline({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={(e: DragStartEvent) => onDragStart(String(e.active.id))}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         {/* ── Ruler row (full width, spans scale gap + blocks area) ── */}
@@ -274,8 +290,9 @@ export default function Timeline({
             <div
               className={styles.dragOverlay}
               style={{
-                width:       200,
-                height:      Math.max(MIN_BLOCK_HEIGHT, activeBlockData.heightRatio * CANVAS_HEIGHT),
+                boxSizing:   'border-box',
+                width:       activeDimensions?.width  ?? 200,
+                height:      activeDimensions?.height ?? Math.max(MIN_BLOCK_HEIGHT, activeBlockData.heightRatio * CANVAS_HEIGHT),
                 background:  ZONE_CONFIG[activeBlock.zone].bg,
                 borderColor: ZONE_CONFIG[activeBlock.zone].border,
                 color:       ZONE_CONFIG[activeBlock.zone].color,
