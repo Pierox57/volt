@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import type { Block, ZoneType } from '../../types';
-import { ZONE_CONFIG, ZONES, MIN_DURATION, formatDuration } from '../../types';
+import { ZONE_CONFIG, ZONES, MIN_DURATION } from '../../types';
 import type { ZoneSystem } from '../../zones';
 import { getBlockWatts } from '../../zones';
 import styles from './BlockToolbar.module.css';
@@ -18,12 +18,16 @@ interface BlockToolbarProps {
 
 const ZONE_KEYS: ZoneType[] = ['z1', 'z2', 'z3', 'z4', 'z5', 'z6', 'z7'];
 
-/** Parse a duration string in "mm:ss", "Nmin", or plain seconds format. */
+/** Always formats seconds as zero-padded MM:SS (e.g. 300 → "05:00", 330 → "05:30"). */
+function formatMmSs(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+/** Parse a duration string in "mm:ss" or plain seconds format. */
 function parseDuration(value: string): number | null {
   const trimmed = value.trim();
-  // "Nmin" format (e.g. "5min")
-  const minMatch = trimmed.match(/^(\d+)\s*min$/i);
-  if (minMatch) return parseInt(minMatch[1], 10) * 60;
   // "mm:ss" format
   const mmss = trimmed.match(/^(\d+):(\d{1,2})$/);
   if (mmss) {
@@ -36,6 +40,53 @@ function parseDuration(value: string): number | null {
   const n = parseInt(trimmed, 10);
   if (!isNaN(n) && n > 0) return n;
   return null;
+}
+
+/* ── Inline SVG icons (thin stroke, no external dependency) ── */
+function IconCopy() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" />
+      <path d="M3 10.5V4A1.5 1.5 0 0 1 4.5 2.5H11" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2.5 4.5h11" />
+      <path d="M5.5 4.5V3.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1" />
+      <path d="M6.5 7.5v4M9.5 7.5v4" />
+      <path d="M4 4.5l.65 7.15A1 1 0 0 0 5.65 12.5h4.7a1 1 0 0 0 1-.85L12 4.5" />
+    </svg>
+  );
+}
+
+function IconPencil() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11 2.5a1.5 1.5 0 0 1 2.12 0l.38.38a1.5 1.5 0 0 1 0 2.12L5 13.5H2.5v-2.5L11 2.5Z" />
+      <path d="M9.5 4 12 6.5" />
+    </svg>
+  );
+}
+
+function IconCheck() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="2, 7 5.5, 10.5 12, 3.5" />
+    </svg>
+  );
+}
+
+function IconX() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <line x1="2" y1="2" x2="10" y2="10" />
+      <line x1="10" y1="2" x2="2" y2="10" />
+    </svg>
+  );
 }
 
 export default function BlockToolbar({
@@ -110,12 +161,12 @@ export default function BlockToolbar({
   const toolbarRef    = useRef<HTMLDivElement>(null);
 
   const openEdit = useCallback(() => {
-    setDurationInput(formatDuration(displayDur));
+    setDurationInput(formatMmSs(displayDur));
     setWattsInput(String(displayWatts));
     setEditMode(true);
     // Defer focus until the input is in the DOM after the state update
     requestAnimationFrame(() => durInputRef.current?.focus());
-  }, [displayDur, displayWatts]);
+  }, [displayDur, displayWatts, setDurationInput, setWattsInput, setEditMode]);
 
   const closeEdit = useCallback(() => setEditMode(false), []);
 
@@ -224,7 +275,7 @@ export default function BlockToolbar({
                 title="Confirmer (Entrée)"
                 aria-label="Confirmer"
               >
-                ✓
+                <IconCheck />
               </button>
               <button
                 className={`${styles.editActionBtn} ${styles.editCancel}`}
@@ -232,7 +283,7 @@ export default function BlockToolbar({
                 title="Annuler (Échap)"
                 aria-label="Annuler"
               >
-                ✕
+                <IconX />
               </button>
             </div>
           </div>
@@ -277,7 +328,7 @@ export default function BlockToolbar({
           title={`Dupliquer${count > 1 ? ` (${count} blocs)` : ''} — Ctrl+D`}
           aria-label="Dupliquer"
         >
-          ⎘
+          <IconCopy />
         </button>
 
         <div className={styles.sep} />
@@ -288,7 +339,7 @@ export default function BlockToolbar({
           title={`Supprimer${count > 1 ? ` (${count} blocs)` : ''} — Suppr`}
           aria-label="Supprimer"
         >
-          🗑
+          <IconTrash />
         </button>
 
         <div className={styles.sep} />
@@ -300,7 +351,7 @@ export default function BlockToolbar({
           aria-label="Modifier les valeurs"
           aria-expanded={editMode}
         >
-          ✏
+          <IconPencil />
         </button>
       </div>
     </div>
