@@ -25,7 +25,7 @@
 .zoneFill {
   position: absolute;
   inset: 0;
-  opacity: 0.07;
+  opacity: 0.05;
   pointer-events: none;
 }
 

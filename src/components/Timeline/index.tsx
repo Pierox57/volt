@@ -240,7 +240,7 @@ export default function Timeline({
                 <div className={styles.zoneLines} data-timeline-bg="true">
                   {zoneSystem.zones.map((range, i) => {
                     const bottomPct = (Math.min(range.min, maxDisplayWatts) / maxDisplayWatts) * 100;
-                    if (bottomPct <= 0 || bottomPct >= 100) return null;
+                    if (bottomPct < 1 || bottomPct >= 100) return null;
                     return (
                       <div
                         key={i}
