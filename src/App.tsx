@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { Block, ZoneType } from './types';
+import type { Block } from './types';
 import {
   DEFAULT_DURATION,
   MIN_DURATION,
@@ -159,15 +159,6 @@ export default function App() {
     [selectedIds],
   );
 
-  const handleZoneChange = useCallback(
-    (zone: ZoneType) => {
-      setBlocks((prev) =>
-        prev.map((b) => (selectedIds.has(b.id) ? { ...b, zone } : b)),
-      );
-    },
-    [selectedIds],
-  );
-
   /** Apply a watts value (absolute) to all selected blocks */
   const handleBlockEditorWattsChange = useCallback(
     (watts: number) => {
@@ -314,7 +305,6 @@ export default function App() {
           selectedBlocks={selectedBlocks}
           zoneSystem={zoneSystem}
           onAbsoluteDurationChange={handleAbsoluteDurationChange}
-          onZoneChange={handleZoneChange}
           onWattsChange={handleBlockEditorWattsChange}
           onDelete={handleDelete}
           onDuplicate={handleDuplicate}

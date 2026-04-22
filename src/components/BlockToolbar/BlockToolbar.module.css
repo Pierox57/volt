@@ -56,19 +56,25 @@
   color: var(--color-text-muted);
   background: transparent;
   transition:
-    background var(--duration-fast),
-    color var(--duration-fast),
+    color 150ms ease-out,
     transform 120ms var(--ease-spring);
 }
 
+/* Default (edit) button hover — neutral text color, no background */
 .toolBtn:hover {
-  background: var(--color-surface-2);
+  background: transparent;
   color: var(--color-text);
   transform: scale(1.1);
 }
 
+/* Duplicate button hover — accent/primary color */
+.toolBtnAccent:hover {
+  color: var(--color-accent);
+}
+
+/* Delete button hover — destructive red, no background */
 .toolBtnDanger:hover {
-  background: rgba(230, 57, 70, 0.08);
+  background: transparent;
   color: var(--color-danger);
 }
 
@@ -78,7 +84,7 @@
 }
 
 .toolBtnActive:hover {
-  background: rgba(37, 99, 235, 0.16);
+  background: rgba(37, 99, 235, 0.1);
   color: var(--color-accent);
 }
 
@@ -238,42 +244,4 @@
 .editCancel:hover {
   background: var(--color-border);
   color: var(--color-text);
-}
-
-/* ─── Zone chips row ────────────────────────────────────────────────────────── */
-.zoneRow {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.zoneChip {
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  border: 1.5px solid var(--chip-border, var(--color-border-strong));
-  background: transparent;
-  color: var(--color-text-muted);
-  transition:
-    background var(--duration-fast),
-    color var(--duration-fast),
-    transform 120ms var(--ease-spring),
-    border-color var(--duration-fast);
-}
-
-.zoneChip:hover {
-  background: var(--chip-bg);
-  color: var(--chip-color);
-  transform: scale(1.08);
-  border-color: var(--chip-border);
-}
-
-.zoneChip.zoneChipActive {
-  background: var(--chip-bg);
-  color: var(--chip-color);
-  border-color: var(--chip-border);
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.07);
-  transform: scale(1.05);
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import type { Block, ZoneType } from '../../types';
-import { ZONE_CONFIG, ZONES, MIN_DURATION } from '../../types';
+import { MIN_DURATION } from '../../types';
 import type { ZoneSystem } from '../../zones';
 import { getBlockWatts } from '../../zones';
 import styles from './BlockToolbar.module.css';
@@ -9,7 +9,6 @@ interface BlockToolbarProps {
   selectedBlocks: Block[];
   zoneSystem: ZoneSystem;
   onAbsoluteDurationChange: (duration: number) => void;
-  onZoneChange: (zone: ZoneType) => void;
   onWattsChange: (watts: number) => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -93,7 +92,6 @@ export default function BlockToolbar({
   selectedBlocks,
   zoneSystem,
   onAbsoluteDurationChange,
-  onZoneChange,
   onWattsChange,
   onDelete,
   onDuplicate,
@@ -115,9 +113,6 @@ export default function BlockToolbar({
     : 0;
   const allSameWatts = effectiveWatts.every((w) => w === effectiveWatts[0]);
   const displayWatts = allSameWatts ? (effectiveWatts[0] ?? avgWatts) : avgWatts;
-
-  const uniqueZones = [...new Set(selectedBlocks.map((b) => b.zone))];
-  const currentZone: ZoneType | null = uniqueZones.length === 1 ? (uniqueZones[0] ?? null) : null;
 
   // ── Toolbar position (fixed) ────────────────────────────────────────────
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
@@ -250,22 +245,28 @@ export default function BlockToolbar({
               />
             </div>
 
-            {/* Watts input */}
-            <div className={styles.editField}>
-              <label className={styles.editLabel}>Watts</label>
-              <input
-                className={styles.editInput}
-                type="number"
-                min={0}
-                value={wattsInput}
-                onChange={(e) => setWattsInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') confirmEdit();
-                }}
-                placeholder="W"
-                aria-label="Puissance en watts"
-              />
-            </div>
+            {/* Intensity input (watts or bpm depending on mode) */}
+            {(() => {
+              const isHr = zoneSystem.mode === 'hrmax';
+              const unitLabel = isHr ? 'bpm' : 'watts';
+              return (
+                <div className={styles.editField}>
+                  <label className={styles.editLabel}>{unitLabel}</label>
+                  <input
+                    className={styles.editInput}
+                    type="number"
+                    min={0}
+                    value={wattsInput}
+                    onChange={(e) => setWattsInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') confirmEdit();
+                    }}
+                    placeholder={isHr ? 'bpm' : 'W'}
+                    aria-label={isHr ? 'Fréquence cardiaque en bpm' : 'Puissance en watts'}
+                  />
+                </div>
+              );
+            })()}
 
             {/* Confirm / Cancel */}
             <div className={styles.editActions}>
@@ -287,30 +288,6 @@ export default function BlockToolbar({
               </button>
             </div>
           </div>
-
-          {/* Zone chips */}
-          <div className={styles.zoneRow} role="group" aria-label="Zone">
-            {ZONES.map((zone) => {
-              const cfg    = ZONE_CONFIG[zone];
-              const active = currentZone === zone;
-              return (
-                <button
-                  key={zone}
-                  className={`${styles.zoneChip} ${active ? styles.zoneChipActive : ''}`}
-                  style={{
-                    '--chip-bg':     cfg.bg,
-                    '--chip-border': cfg.border,
-                    '--chip-color':  cfg.color,
-                  } as React.CSSProperties}
-                  onClick={() => onZoneChange(zone)}
-                  title={cfg.label}
-                  aria-pressed={active}
-                >
-                  {zone.toUpperCase()}
-                </button>
-              );
-            })}
-          </div>
         </div>
       )}
 
@@ -323,7 +300,7 @@ export default function BlockToolbar({
         )}
 
         <button
-          className={styles.toolBtn}
+          className={`${styles.toolBtn} ${styles.toolBtnAccent}`}
           onClick={onDuplicate}
           title={`Dupliquer${count > 1 ? ` (${count} blocs)` : ''} — Ctrl+D`}
           aria-label="Dupliquer"
