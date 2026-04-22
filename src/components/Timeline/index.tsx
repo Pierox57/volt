@@ -217,6 +217,8 @@ export default function Timeline({
                 <div className={styles.zoneLines} data-timeline-bg="true">
                   {zoneSystem.zones.map((range, i) => {
                     const bottomPct = (Math.min(range.min, maxDisplayWatts) / maxDisplayWatts) * 100;
+                    // Skip lines at the very bottom (Z1 base = 0%) and at or beyond the top
+                    // of the visible range — they would overlap the canvas edges
                     if (bottomPct < 1 || bottomPct >= 100) return null;
                     return (
                       <div
