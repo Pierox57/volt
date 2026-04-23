@@ -9,10 +9,11 @@ import {
 } from './types';
 import type { ZoneSystem } from './zones';
 import { createDefaultZoneSystem, getZoneIndexForWatts } from './zones';
-import Timeline       from './components/Timeline';
-import BlockToolbar   from './components/BlockToolbar';
-import ShortcutHelper from './components/ShortcutHelper';
-import ZoneSettings   from './components/ZoneSettings';
+import Timeline          from './components/Timeline';
+import BlockToolbar      from './components/BlockToolbar';
+import ShortcutHelper    from './components/ShortcutHelper';
+import ZoneSettings      from './components/ZoneSettings';
+import ExportFitButton   from './components/ExportFitButton';
 import { useKeyboard } from './hooks/useKeyboard';
 import styles from './App.module.css';
 
@@ -264,6 +265,8 @@ export default function App() {
           <button className={styles.btnPrimary} onClick={handleAddBlock}>
             <span>+</span>&nbsp;Ajouter
           </button>
+          <ExportFitButton blocks={blocks} zoneSystem={zoneSystem} />
+
           {blocks.length > 0 && (
             <button
               className={styles.btnDanger}
