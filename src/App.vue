@@ -24,15 +24,16 @@ const userStore = useUserStore()
 type FlowStep = null | 'auth' | 'onboarding' | 'device' | 'paywall'
 const flowStep   = ref<FlowStep>(null)
 const toastMsg   = ref<string | null>(null)
-let   toastTimer = 0
+let   toastTimer: ReturnType<typeof setTimeout> | null = null
 
 /* ─── Toast helper ───────────────────────────────────────────────────────── */
 function showToast(msg: string, delayMs = 0) {
-  clearTimeout(toastTimer)
-  toastTimer = window.setTimeout(() => {
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
     toastMsg.value = msg
-    toastTimer = window.setTimeout(() => {
+    toastTimer = setTimeout(() => {
       toastMsg.value = null
+      toastTimer = null
     }, 3000)
   }, delayMs)
 }
@@ -97,6 +98,7 @@ function onOnboardingComplete(data: {
     store.setZoneSystem({
       mode:  'ftp',
       ftp:   data.ftp,
+      /* PMA ≈ FTP / 0.75 — standard Coggan power-duration ratio */
       pma:   Math.round(data.ftp / 0.75),
       hrmax: data.fcMax ?? store.zoneSystem.hrmax,
       zones: computeZonesFromFTP(data.ftp),

@@ -105,6 +105,11 @@ function skipQuestion() {
   advance()
 }
 
+function numberPlaceholder(id: string): string {
+  const examples: Record<string, string> = { ftp: '250', fcMax: '185', poids: '70' }
+  return `Ex. ${examples[id] ?? '0'}`
+}
+
 function finish() {
   emit('complete', {
     discipline: answers.value.discipline as string | null,
@@ -163,7 +168,7 @@ function finish() {
                 :class="styles.numInput"
                 type="number"
                 min="0"
-                :placeholder="`Ex. ${currentQuestion.id === 'ftp' ? '250' : currentQuestion.id === 'fcMax' ? '185' : '70'}`"
+                :placeholder="numberPlaceholder(currentQuestion.id)"
                 @keydown.enter="submitNumber"
               />
               <span :class="styles.unit">{{ (currentQuestion as NumberQuestion).unit }}</span>
