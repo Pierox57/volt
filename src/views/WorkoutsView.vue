@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workout'
 import type { SavedWorkout } from '@/stores/workout'
@@ -42,6 +42,14 @@ function toggleSelect(id: string) {
   else              next.add(id)
   selectedIds.value = next
 }
+
+/* ─── Select-all checkbox (indeterminate state) ──────────────────────────── */
+const selectAllRef = ref<HTMLInputElement | null>(null)
+watchEffect(() => {
+  if (selectAllRef.value) {
+    selectAllRef.value.indeterminate = selectedIds.value.size > 0 && !allSelected.value
+  }
+})
 
 /* ─── Context menu ───────────────────────────────────────────────────────── */
 const openMenuId      = ref<string | null>(null)
@@ -200,9 +208,9 @@ function syncLabel(status: SavedWorkout['syncStatus']): string {
           <tr>
             <th :class="styles.thCheck">
               <input
+                ref="selectAllRef"
                 type="checkbox"
                 :checked="allSelected"
-                :indeterminate="selectedIds.size > 0 && !allSelected"
                 @change="toggleSelectAll"
                 aria-label="Tout sélectionner"
               />

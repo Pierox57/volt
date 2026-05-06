@@ -37,84 +37,61 @@ function estimateTss(blocks: Block[]): number {
 }
 
 /* ─── Mock saved workouts ───────────────────────────────────────────────── */
+function makeWorkout(
+  id: string,
+  name: string,
+  blocks: Block[],
+  syncStatus: SyncStatus,
+  daysAgo: number,
+): SavedWorkout {
+  return {
+    id,
+    name,
+    blocks,
+    totalSeconds: calcTotalSeconds(blocks),
+    estimatedTss: estimateTss(blocks),
+    syncStatus,
+    lastModified:  new Date(Date.now() - daysAgo * 86400_000),
+  }
+}
+
 function makeMockSavedWorkouts(): SavedWorkout[] {
-  const now = Date.now()
   return [
-    {
-      id: 'sw-1',
-      name: 'Sweet Spot x5',
-      blocks: [
-        { id: generateId(), duration: 600, zone: 'z1' },
-        { id: generateId(), duration: 1200, zone: 'z4' },
-        { id: generateId(), duration: 300,  zone: 'z2' },
-        { id: generateId(), duration: 1200, zone: 'z4' },
-        { id: generateId(), duration: 300,  zone: 'z1' },
-      ],
-      get totalSeconds() { return calcTotalSeconds(this.blocks) },
-      get estimatedTss() { return estimateTss(this.blocks) },
-      syncStatus: 'synced',
-      lastModified: new Date(now - 2 * 86400_000),
-    },
-    {
-      id: 'sw-2',
-      name: 'VO2max Intervals',
-      blocks: [
-        { id: generateId(), duration: 600, zone: 'z2' },
-        { id: generateId(), duration: 180, zone: 'z5' },
-        { id: generateId(), duration: 180, zone: 'z1' },
-        { id: generateId(), duration: 180, zone: 'z5' },
-        { id: generateId(), duration: 180, zone: 'z1' },
-        { id: generateId(), duration: 180, zone: 'z5' },
-        { id: generateId(), duration: 300, zone: 'z1' },
-      ],
-      get totalSeconds() { return calcTotalSeconds(this.blocks) },
-      get estimatedTss() { return estimateTss(this.blocks) },
-      syncStatus: 'pending',
-      lastModified: new Date(now - 5 * 86400_000),
-    },
-    {
-      id: 'sw-3',
-      name: 'Endurance 2h',
-      blocks: [
-        { id: generateId(), duration: 7200, zone: 'z2' },
-      ],
-      get totalSeconds() { return calcTotalSeconds(this.blocks) },
-      get estimatedTss() { return estimateTss(this.blocks) },
-      syncStatus: 'never',
-      lastModified: new Date(now - 10 * 86400_000),
-    },
-    {
-      id: 'sw-4',
-      name: 'Pyramide Z1-Z5',
-      blocks: [
-        { id: generateId(), duration: 300, zone: 'z1' },
-        { id: generateId(), duration: 300, zone: 'z2' },
-        { id: generateId(), duration: 300, zone: 'z3' },
-        { id: generateId(), duration: 300, zone: 'z4' },
-        { id: generateId(), duration: 300, zone: 'z5' },
-        { id: generateId(), duration: 300, zone: 'z4' },
-        { id: generateId(), duration: 300, zone: 'z3' },
-        { id: generateId(), duration: 300, zone: 'z2' },
-        { id: generateId(), duration: 300, zone: 'z1' },
-      ],
-      get totalSeconds() { return calcTotalSeconds(this.blocks) },
-      get estimatedTss() { return estimateTss(this.blocks) },
-      syncStatus: 'synced',
-      lastModified: new Date(now - 14 * 86400_000),
-    },
-    {
-      id: 'sw-5',
-      name: 'Tempo 40min',
-      blocks: [
-        { id: generateId(), duration: 600,  zone: 'z2' },
-        { id: generateId(), duration: 2400, zone: 'z3' },
-        { id: generateId(), duration: 600,  zone: 'z1' },
-      ],
-      get totalSeconds() { return calcTotalSeconds(this.blocks) },
-      get estimatedTss() { return estimateTss(this.blocks) },
-      syncStatus: 'never',
-      lastModified: new Date(now - 21 * 86400_000),
-    },
+    makeWorkout('sw-1', 'Sweet Spot x5', [
+      { id: generateId(), duration: 600,  zone: 'z1' },
+      { id: generateId(), duration: 1200, zone: 'z4' },
+      { id: generateId(), duration: 300,  zone: 'z2' },
+      { id: generateId(), duration: 1200, zone: 'z4' },
+      { id: generateId(), duration: 300,  zone: 'z1' },
+    ], 'synced', 2),
+    makeWorkout('sw-2', 'VO2max Intervals', [
+      { id: generateId(), duration: 600, zone: 'z2' },
+      { id: generateId(), duration: 180, zone: 'z5' },
+      { id: generateId(), duration: 180, zone: 'z1' },
+      { id: generateId(), duration: 180, zone: 'z5' },
+      { id: generateId(), duration: 180, zone: 'z1' },
+      { id: generateId(), duration: 180, zone: 'z5' },
+      { id: generateId(), duration: 300, zone: 'z1' },
+    ], 'pending', 5),
+    makeWorkout('sw-3', 'Endurance 2h', [
+      { id: generateId(), duration: 7200, zone: 'z2' },
+    ], 'never', 10),
+    makeWorkout('sw-4', 'Pyramide Z1-Z5', [
+      { id: generateId(), duration: 300, zone: 'z1' },
+      { id: generateId(), duration: 300, zone: 'z2' },
+      { id: generateId(), duration: 300, zone: 'z3' },
+      { id: generateId(), duration: 300, zone: 'z4' },
+      { id: generateId(), duration: 300, zone: 'z5' },
+      { id: generateId(), duration: 300, zone: 'z4' },
+      { id: generateId(), duration: 300, zone: 'z3' },
+      { id: generateId(), duration: 300, zone: 'z2' },
+      { id: generateId(), duration: 300, zone: 'z1' },
+    ], 'synced', 14),
+    makeWorkout('sw-5', 'Tempo 40min', [
+      { id: generateId(), duration: 600,  zone: 'z2' },
+      { id: generateId(), duration: 2400, zone: 'z3' },
+      { id: generateId(), duration: 600,  zone: 'z1' },
+    ], 'never', 21),
   ]
 }
 
