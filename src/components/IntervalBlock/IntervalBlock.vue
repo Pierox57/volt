@@ -47,33 +47,35 @@ const intensityBarH = computed(() =>
 )
 
 /* ── Block-level click / drag-start dispatch ── */
+const pointerIsDown  = ref(false)
 const pointerDownX   = ref(0)
 const hasDragEmitted = ref(false)
 
 function handleBlockPointerDown(e: PointerEvent) {
   e.stopPropagation()
+  pointerIsDown.value  = true
   pointerDownX.value   = e.clientX
   hasDragEmitted.value = false
   ;(e.currentTarget as SVGElement).setPointerCapture(e.pointerId)
 }
 
 function handleBlockPointerMove(e: PointerEvent) {
-  if (!hasDragEmitted.value) {
-    const dx = Math.abs(e.clientX - pointerDownX.value)
-    if (dx > DRAG_THRESHOLD) {
-      hasDragEmitted.value = true
-      // Compute pointer X relative to the SVG
-      const svgEl = (e.currentTarget as SVGElement).ownerSVGElement
-      if (!svgEl) return
-      const rect  = svgEl.getBoundingClientRect()
-      const svgX  = e.clientX - rect.left
-      emit('dragStart', props.block.id, svgX)
-    }
+  // Only act when a pointer button is held — prevents spurious drags on hover
+  if (!pointerIsDown.value || hasDragEmitted.value) return
+  const dx = Math.abs(e.clientX - pointerDownX.value)
+  if (dx > DRAG_THRESHOLD) {
+    hasDragEmitted.value = true
+    // Compute pointer X relative to the SVG
+    const svgEl = (e.currentTarget as SVGElement).ownerSVGElement
+    if (!svgEl) return
+    const rect  = svgEl.getBoundingClientRect()
+    const svgX  = e.clientX - rect.left
+    emit('dragStart', props.block.id, svgX)
   }
 }
 
 function handleBlockPointerUp(e: PointerEvent) {
-  if (!hasDragEmitted.value) {
+  if (pointerIsDown.value && !hasDragEmitted.value) {
     // It was a click (not a drag)
     if (e.shiftKey || e.metaKey || e.ctrlKey) {
       emit('select', props.block.id, 'multi')
@@ -81,6 +83,12 @@ function handleBlockPointerUp(e: PointerEvent) {
       emit('select', props.block.id, 'single')
     }
   }
+  pointerIsDown.value  = false
+  hasDragEmitted.value = false
+}
+
+function handleBlockPointerCancel() {
+  pointerIsDown.value  = false
   hasDragEmitted.value = false
 }
 
@@ -160,6 +168,7 @@ function handleHeightResizePointerDown(e: PointerEvent) {
       @pointerdown="handleBlockPointerDown"
       @pointermove="handleBlockPointerMove"
       @pointerup="handleBlockPointerUp"
+      @pointercancel="handleBlockPointerCancel"
       :aria-label="`${zone.label} – ${formatDuration(block.duration)} – ${layout.watts}W`"
       role="button"
       :aria-pressed="isSelected"
