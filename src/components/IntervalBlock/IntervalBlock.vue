@@ -47,6 +47,7 @@ const intensityBarH = computed(() =>
 )
 
 /* ── Block-level click / drag-start dispatch ── */
+const isHovered      = ref(false)
 const pointerIsDown  = ref(false)
 const pointerDownX   = ref(0)
 const hasDragEmitted = ref(false)
@@ -155,6 +156,8 @@ function handleHeightResizePointerDown(e: PointerEvent) {
     :transform="`translate(${layout.x}, ${layout.y})`"
     :data-block-id="block.id"
     :opacity="isDragging ? 0.3 : 1"
+    @pointerenter="isHovered = true"
+    @pointerleave="isHovered = false"
   >
     <!-- Main rect (zone colour) -->
     <rect
@@ -231,6 +234,7 @@ function handleHeightResizePointerDown(e: PointerEvent) {
 
     <!-- Height resize handle (top edge pill) -->
     <rect
+      v-if="isSelected || isHovered"
       :x="Math.max(0, (layout.width - HANDLE_SIZE) / 2)"
       y="4"
       :width="HANDLE_SIZE"
@@ -244,6 +248,7 @@ function handleHeightResizePointerDown(e: PointerEvent) {
 
     <!-- Width resize handle (right edge pill) -->
     <rect
+      v-if="isSelected || isHovered"
       :x="layout.width - 10"
       :y="Math.max(0, (layout.height - HANDLE_SIZE) / 2)"
       width="6"
