@@ -132,6 +132,11 @@ export const useWorkoutStore = defineStore('workout', () => {
     })
   }
 
+  /* ─── Cloud persistence (mock) ──────────────────────────────────────── */
+  async function persistToCloud(): Promise<void> {
+    await new Promise<void>((resolve) => setTimeout(resolve, 600))
+  }
+
   /* ─── Zone system ────────────────────────────────────────────────────── */
   function setZoneSystem(sys: ZoneSystem) {
     zoneSystem.value = sys
@@ -165,5 +170,6 @@ export const useWorkoutStore = defineStore('workout', () => {
     setAbsoluteDuration,
     setSelectedWatts,
     setZoneSystem,
+    persistToCloud,
   }
 })

@@ -1,0 +1,210 @@
+/* ─── Backdrop ────────────────────────────────────────────────────────────── */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(4px);
+  padding: var(--space-4);
+}
+
+/* ─── Modal ───────────────────────────────────────────────────────────────── */
+.modal {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  width: 100%;
+  max-width: 560px;
+  box-shadow: var(--shadow-xl);
+  animation: modalIn 0.25s var(--ease-out);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* ─── Close ───────────────────────────────────────────────────────────────── */
+.closeBtn {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.closeBtn:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+/* ─── Header ──────────────────────────────────────────────────────────────── */
+.header {
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px var(--space-3);
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ─── Plans grid ──────────────────────────────────────────────────────────── */
+.plans {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.plan {
+  position: relative;
+  padding: var(--space-5);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+}
+
+.planPremium {
+  border-color: var(--color-accent);
+  background: linear-gradient(160deg, #eff6ff 0%, #fff 100%);
+}
+
+.planBadge {
+  position: absolute;
+  top: calc(-1 * var(--space-3));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.planName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.planPrice {
+  margin-bottom: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.priceAmount {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+.priceUnit {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ─── Features ────────────────────────────────────────────────────────────── */
+.features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.featureMuted {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.featureIcon {
+  font-size: 12px;
+  color: var(--color-success);
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.featureIconOff {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* ─── Trial CTA ───────────────────────────────────────────────────────────── */
+.trialBtn {
+  width: 100%;
+  padding: var(--space-4) var(--space-6);
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  transition: opacity var(--duration-fast), transform var(--duration-fast) var(--ease-spring);
+  box-shadow: var(--shadow-md);
+}
+
+.trialBtn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: scale(1.01);
+}
+
+.trialBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── Legal ───────────────────────────────────────────────────────────────── */
+.legal {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: var(--space-3);
+}

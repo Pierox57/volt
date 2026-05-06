@@ -1,15 +1,41 @@
 <!-- MIGRATED from: App.tsx -->
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { ZONE_CONFIG, ZONES } from '@/types'
 import Timeline       from '@/components/Timeline/Timeline.vue'
 import BlockToolbar   from '@/components/BlockToolbar/BlockToolbar.vue'
 import ShortcutHelper from '@/components/ShortcutHelper/ShortcutHelper.vue'
 import ZoneSettings   from '@/components/ZoneSettings/ZoneSettings.vue'
-import { useKeyboard } from '@/composables/useKeyboard'
+import AuthModal      from '@/components/AuthModal/AuthModal.vue'
+import Onboarding     from '@/components/Onboarding/Onboarding.vue'
+import DeviceModal    from '@/components/DeviceModal/DeviceModal.vue'
+import PaywallModal   from '@/components/PaywallModal/PaywallModal.vue'
+import Toast          from '@/components/Toast/Toast.vue'
+import { useKeyboard }     from '@/composables/useKeyboard'
 import { useWorkoutStore } from '@/stores/workout'
+import { useUserStore }    from '@/stores/user'
+import { computeZonesFromFTP } from '@/zones'
 import styles from './App.module.css'
 
-const store = useWorkoutStore()
+const store     = useWorkoutStore()
+const userStore = useUserStore()
+
+/* ─── Flow state ─────────────────────────────────────────────────────────── */
+type FlowStep = null | 'auth' | 'onboarding' | 'device' | 'paywall'
+const flowStep   = ref<FlowStep>(null)
+const toastMsg   = ref<string | null>(null)
+let   toastTimer = 0
+
+/* ─── Toast helper ───────────────────────────────────────────────────────── */
+function showToast(msg: string, delayMs = 0) {
+  clearTimeout(toastTimer)
+  toastTimer = window.setTimeout(() => {
+    toastMsg.value = msg
+    toastTimer = window.setTimeout(() => {
+      toastMsg.value = null
+    }, 3000)
+  }, delayMs)
+}
 
 /* ─── Format helper ─────────────────────────────────────────────────────── */
 function formatTotal(s: number): string {
@@ -26,6 +52,82 @@ useKeyboard({
   onSelectAll: store.selectAll,
   onEscape:    store.deselectAll,
 })
+
+/* ─── Toolbar button label ──────────────────────────────────────────────── */
+const sendButtonLabel = computed(() => {
+  const m = userStore.materiel
+  if (m === 'Garmin' || m === 'Wahoo') return `↑ Envoyer vers ${m}`
+  return '↑ Envoyer vers mon compteur'
+})
+
+/* ─── Main send handler ─────────────────────────────────────────────────── */
+function handleSendToDevice() {
+  if (!userStore.isAuthenticated) {
+    flowStep.value = 'auth'
+    return
+  }
+  /* Already connected + premium → send directly */
+  if (userStore.isPremium && (userStore.garminConnected || userStore.wahooConnected)) {
+    const device = userStore.garminConnected ? 'Garmin' : 'Wahoo'
+    showToast(`Workout envoyé vers ton ${device}`, 1000)
+    return
+  }
+  flowStep.value = 'device'
+}
+
+/* ─── Auth modal events ─────────────────────────────────────────────────── */
+async function onAuthSuccess() {
+  userStore.login()
+  await store.persistToCloud()
+  flowStep.value = 'onboarding'
+}
+
+/* ─── Onboarding events ─────────────────────────────────────────────────── */
+function onOnboardingComplete(data: {
+  discipline: string | null
+  ftp: number | null
+  fcMax: number | null
+  materiel: string | null
+  poids: number | null
+}) {
+  userStore.saveOnboarding(data)
+
+  /* If FTP was provided, update the zone system to show real watts */
+  if (data.ftp && data.ftp > 0) {
+    store.setZoneSystem({
+      mode:  'ftp',
+      ftp:   data.ftp,
+      pma:   Math.round(data.ftp / 0.75),
+      hrmax: data.fcMax ?? store.zoneSystem.hrmax,
+      zones: computeZonesFromFTP(data.ftp),
+    })
+  }
+
+  flowStep.value = null
+  showToast('Workout sauvegardé sur ton compte ✓')
+}
+
+/* ─── Device modal events ───────────────────────────────────────────────── */
+function onDeviceDone(device: 'garmin' | 'wahoo') {
+  if (device === 'garmin') userStore.connectGarmin()
+  else                     userStore.connectWahoo()
+
+  if (userStore.isPremium) {
+    flowStep.value = null
+    const label = device === 'garmin' ? 'Garmin' : 'Wahoo'
+    showToast(`Workout envoyé vers ton ${label}`, 1000)
+  } else {
+    flowStep.value = 'paywall'
+  }
+}
+
+/* ─── Paywall modal events ──────────────────────────────────────────────── */
+function onPaywallActivated() {
+  userStore.activatePremium()
+  flowStep.value = null
+  const device = userStore.garminConnected ? 'Garmin' : 'Wahoo'
+  showToast(`Workout envoyé vers ton ${device}`, 1000)
+}
 </script>
 
 <template>
@@ -61,6 +163,11 @@ useKeyboard({
           :zone-system="store.zoneSystem"
           @zone-system-change="store.setZoneSystem"
         />
+
+        <!-- Send to device button -->
+        <button :class="styles.btnPrimary" @click="handleSendToDevice">
+          {{ sendButtonLabel }}
+        </button>
       </div>
     </header>
 
@@ -94,5 +201,54 @@ useKeyboard({
 
     <!-- Shortcut helper -->
     <ShortcutHelper />
+
+    <!-- ── Flow modals / screens ────────────────────────────────────────── -->
+
+    <!-- Auth modal (signup / login) -->
+    <AuthModal
+      v-if="flowStep === 'auth'"
+      @success="onAuthSuccess"
+      @close="flowStep = null"
+    />
+
+    <!-- Onboarding full-screen -->
+    <Onboarding
+      v-if="flowStep === 'onboarding'"
+      @complete="onOnboardingComplete"
+    />
+
+    <!-- Device connection modal -->
+    <DeviceModal
+      v-if="flowStep === 'device'"
+      @done="onDeviceDone"
+      @close="flowStep = null"
+    />
+
+    <!-- Paywall modal -->
+    <PaywallModal
+      v-if="flowStep === 'paywall'"
+      @activated="onPaywallActivated"
+      @close="flowStep = null"
+    />
+
+    <!-- Toast notification -->
+    <Transition name="toast">
+      <div v-if="toastMsg" :class="styles.toastWrapper">
+        <Toast :message="toastMsg" />
+      </div>
+    </Transition>
   </div>
 </template>
+
+<style>
+/* Toast transition — global because Transition applies classes to the wrapper */
+.toast-enter-active,
+.toast-leave-active {
+  transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out);
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
+}
+</style>
