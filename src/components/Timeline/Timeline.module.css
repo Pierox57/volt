@@ -76,7 +76,8 @@
   position: relative;
   min-width: 0;
   cursor: default;
-  padding: var(--space-2);
+  /* No vertical padding: SVG must reach the same bottom edge as the Scale */
+  padding: 0 var(--space-2);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -86,6 +87,9 @@
 /* ─── SVG canvas (replaces blocksRow) ────────────────────────────────────── */
 .svgCanvas {
   width: 100%;
+  /* Fill all vertical space left after the absolutely-positioned addZone button */
+  flex: 1;
+  min-height: 0;
   display: block;
   overflow: visible;
 }
@@ -117,7 +121,10 @@
 
 /* ─── Add-block zone ──────────────────────────────────────────────────────── */
 .addZone {
-  flex-shrink: 0;
+  /* Removed from flex flow so the SVG fills all vertical space */
+  position: absolute;
+  bottom: var(--space-2);
+  right: var(--space-2);
   width: 36px;
   height: 44px;
   border-radius: var(--radius-md);

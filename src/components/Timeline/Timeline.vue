@@ -12,12 +12,11 @@ import styles from './Timeline.module.css'
 const store = useWorkoutStore()
 
 /* ── SVG dimensions ── */
-const SVG_HEIGHT  = 220
 const BLOCK_GAP   = 3  // pixels between adjacent blocks
 const MIN_BLOCK_H = 28
 
 const svgRef = ref<SVGSVGElement | null>(null)
-const { width: svgWidth } = useElementSize(svgRef)
+const { width: svgWidth, height: svgHeight } = useElementSize(svgRef)
 
 /* ── Derived: maxDisplayWatts, markers, zone lines ── */
 const maxDisplayWatts = computed(() => getMaxDisplayWatts(store.zoneSystem.zones))
@@ -60,7 +59,8 @@ export interface BlockLayout {
 
 const blockLayouts = computed((): BlockLayout[] => {
   const total = totalDuration.value
-  if (total === 0 || svgWidth.value === 0) return []
+  const svgH  = svgHeight.value
+  if (total === 0 || svgWidth.value === 0 || svgH === 0) return []
 
   const n = store.blocks.length
   const usableW = Math.max(0, svgWidth.value - BLOCK_GAP * Math.max(0, n - 1))
@@ -70,10 +70,10 @@ const blockLayouts = computed((): BlockLayout[] => {
     const zoneIdx = ZONES.indexOf(block.zone)
     const watts   = getBlockWatts(block.watts, zoneIdx >= 0 ? zoneIdx : 0, store.zoneSystem.zones)
     const hRatio  = wattsToHeightRatio(watts, maxDisplayWatts.value)
-    const height  = Math.max(MIN_BLOCK_H, hRatio * SVG_HEIGHT)
+    const height  = Math.max(MIN_BLOCK_H, hRatio * svgH)
     const width   = (block.duration / total) * usableW
     const x       = curX
-    const y       = SVG_HEIGHT - height
+    const y       = svgH - height
 
     const prev = i > 0 ? store.blocks[i - 1] : null
     const next = i < n - 1 ? store.blocks[i + 1] : null
@@ -90,11 +90,13 @@ const blockLayouts = computed((): BlockLayout[] => {
 })
 
 /* ── Zone boundary lines (horizontal) ── */
-const zoneLineYs = computed(() =>
-  store.zoneSystem.zones
-    .map((z) => SVG_HEIGHT - (z.min / maxDisplayWatts.value) * SVG_HEIGHT)
-    .filter((y) => y >= 0 && y <= SVG_HEIGHT),
-)
+const zoneLineYs = computed(() => {
+  const svgH = svgHeight.value
+  if (svgH === 0) return []
+  return store.zoneSystem.zones
+    .map((z) => svgH - (z.min / maxDisplayWatts.value) * svgH)
+    .filter((y) => y >= 0 && y <= svgH)
+})
 
 /* ── Drag-to-reorder ── */
 interface DragState {
@@ -304,7 +306,6 @@ function handleSvgPointerCancel() {
         <svg
           ref="svgRef"
           :class="styles.svgCanvas"
-          :height="SVG_HEIGHT"
           :style="dragState ? { cursor: 'grabbing' } : undefined"
           @pointerdown="handleSvgPointerDown"
           @pointermove="handleSvgPointerMove"
@@ -331,7 +332,7 @@ function handleSvgPointerCancel() {
             :layout="blockLayouts[idx] ?? { x: 0, y: 0, width: 0, height: 0, watts: 0, neighborWatts: [] }"
             :is-selected="store.selectedIds.has(block.id)"
             :is-dragging="dragState?.blockId === block.id"
-            :svg-height="SVG_HEIGHT"
+            :svg-height="svgHeight"
             :zone-ranges="store.zoneSystem.zones"
             :max-display-watts="maxDisplayWatts"
             @select="store.selectBlock"
@@ -363,7 +364,7 @@ function handleSvgPointerCancel() {
             :x1="dropIndicatorX"
             :x2="dropIndicatorX"
             y1="0"
-            :y2="SVG_HEIGHT"
+            :y2="svgHeight"
             stroke="var(--color-accent)"
             stroke-width="2"
             stroke-dasharray="4 3"
