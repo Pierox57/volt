@@ -12,7 +12,8 @@ import {
 import { smartSnapWatts } from '@/zones'
 import type { BlockLayout } from '@/components/Timeline/Timeline.vue'
 
-const DRAG_THRESHOLD = 4 // px before a click becomes a drag
+const DRAG_THRESHOLD = 4  // px before a click becomes a drag
+const HANDLE_SIZE    = 24 // px length of resize handle pills
 
 const props = defineProps<{
   block: Block
@@ -63,8 +64,9 @@ function handleBlockPointerMove(e: PointerEvent) {
       hasDragEmitted.value = true
       // Compute pointer X relative to the SVG
       const svgEl = (e.currentTarget as SVGElement).ownerSVGElement
-      const rect  = svgEl?.getBoundingClientRect()
-      const svgX  = rect ? e.clientX - rect.left : e.clientX
+      if (!svgEl) return
+      const rect  = svgEl.getBoundingClientRect()
+      const svgX  = e.clientX - rect.left
       emit('dragStart', props.block.id, svgX)
     }
   }
@@ -220,9 +222,9 @@ function handleHeightResizePointerDown(e: PointerEvent) {
 
     <!-- Height resize handle (top edge pill) -->
     <rect
-      :x="Math.max(0, (layout.width - 24) / 2)"
+      :x="Math.max(0, (layout.width - HANDLE_SIZE) / 2)"
       y="4"
-      width="24"
+      :width="HANDLE_SIZE"
       height="8"
       rx="4"
       fill="rgba(255,255,255,0.45)"
@@ -234,9 +236,9 @@ function handleHeightResizePointerDown(e: PointerEvent) {
     <!-- Width resize handle (right edge pill) -->
     <rect
       :x="layout.width - 10"
-      :y="Math.max(0, (layout.height - 24) / 2)"
+      :y="Math.max(0, (layout.height - HANDLE_SIZE) / 2)"
       width="6"
-      height="24"
+      :height="HANDLE_SIZE"
       rx="3"
       fill="rgba(255,255,255,0.45)"
       cursor="ew-resize"
@@ -253,7 +255,7 @@ function handleHeightResizePointerDown(e: PointerEvent) {
       :height="layout.height + 6"
       rx="9"
       fill="none"
-      stroke="#2563eb"
+      stroke="var(--color-accent)"
       stroke-width="3"
       opacity="0.5"
       pointer-events="none"

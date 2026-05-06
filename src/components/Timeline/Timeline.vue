@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useElementSize } from '@vueuse/core'
-import { ZONE_KEYS, formatDuration } from '@/types'
+import { ZONES, formatDuration } from '@/types'
 import { getBlockWatts, wattsToHeightRatio, getMaxDisplayWatts } from '@/zones'
 import { useWorkoutStore } from '@/stores/workout'
 import IntervalBlock from '@/components/IntervalBlock/IntervalBlock.vue'
@@ -13,7 +13,7 @@ const store = useWorkoutStore()
 
 /* ── SVG dimensions ── */
 const SVG_HEIGHT  = 220
-const BLOCK_GAP   = 3
+const BLOCK_GAP   = 3  // pixels between adjacent blocks
 const MIN_BLOCK_H = 28
 
 const svgRef = ref<SVGSVGElement | null>(null)
@@ -67,7 +67,7 @@ const blockLayouts = computed((): BlockLayout[] => {
 
   let curX = 0
   return store.blocks.map((block, i) => {
-    const zoneIdx = ZONE_KEYS.indexOf(block.zone as typeof ZONE_KEYS[number])
+    const zoneIdx = ZONES.indexOf(block.zone)
     const watts   = getBlockWatts(block.watts, zoneIdx >= 0 ? zoneIdx : 0, store.zoneSystem.zones)
     const hRatio  = wattsToHeightRatio(watts, maxDisplayWatts.value)
     const height  = Math.max(MIN_BLOCK_H, hRatio * SVG_HEIGHT)
@@ -78,10 +78,10 @@ const blockLayouts = computed((): BlockLayout[] => {
     const prev = i > 0 ? store.blocks[i - 1] : null
     const next = i < n - 1 ? store.blocks[i + 1] : null
     const prevWatts = prev
-      ? getBlockWatts(prev.watts, ZONE_KEYS.indexOf(prev.zone as typeof ZONE_KEYS[number]), store.zoneSystem.zones)
+      ? getBlockWatts(prev.watts, ZONES.indexOf(prev.zone), store.zoneSystem.zones)
       : null
     const nextWatts = next
-      ? getBlockWatts(next.watts, ZONE_KEYS.indexOf(next.zone as typeof ZONE_KEYS[number]), store.zoneSystem.zones)
+      ? getBlockWatts(next.watts, ZONES.indexOf(next.zone), store.zoneSystem.zones)
       : null
 
     curX += width + BLOCK_GAP
@@ -120,6 +120,13 @@ const dropIndex = computed(() => {
     if (cx > center) insertIdx = i + 1
   }
   return insertIdx
+})
+
+/** Transform for the drag ghost (centered on cursor) */
+const ghostTransform = computed(() => {
+  if (!dragState.value) return ''
+  const { currentX, ghostLayout } = dragState.value
+  return `translate(${currentX - ghostLayout.width / 2}, ${ghostLayout.y})`
 })
 
 /** X coordinate of the drop indicator line */
@@ -171,8 +178,9 @@ onMounted(() => window.addEventListener('keydown', handleEscapeKey))
 onUnmounted(() => window.removeEventListener('keydown', handleEscapeKey))
 
 /* ── Unified SVG pointer handlers ── */
-function getSvgPoint(e: PointerEvent): { x: number; y: number } {
-  const rect = svgRef.value!.getBoundingClientRect()
+function getSvgPoint(e: PointerEvent): { x: number; y: number } | null {
+  if (!svgRef.value) return null
+  const rect = svgRef.value.getBoundingClientRect()
   return { x: e.clientX - rect.left, y: e.clientY - rect.top }
 }
 
@@ -182,6 +190,7 @@ function handleSvgPointerDown(e: PointerEvent) {
   if (target.closest('[data-block-id]') || target.closest('button')) return
 
   const pt = getSvgPoint(e)
+  if (!pt) return
   lassoStartRef.value      = pt
   isDraggingLassoRef.value = false
   ;(e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId)
@@ -191,6 +200,7 @@ function handleSvgPointerMove(e: PointerEvent) {
   // ── Drag-to-reorder ──
   if (dragState.value) {
     const pt = getSvgPoint(e)
+    if (!pt) return
     dragState.value = { ...dragState.value, currentX: pt.x }
     return
   }
@@ -198,6 +208,7 @@ function handleSvgPointerMove(e: PointerEvent) {
   // ── Lasso ──
   if (!lassoStartRef.value) return
   const pt = getSvgPoint(e)
+  if (!pt) return
   const dx = pt.x - lassoStartRef.value.x
   const dy = pt.y - lassoStartRef.value.y
   if (!isDraggingLassoRef.value && Math.sqrt(dx * dx + dy * dy) < 4) return
@@ -332,7 +343,7 @@ function handleSvgPointerCancel() {
           <!-- Drag ghost (semi-transparent copy following cursor) -->
           <g
             v-if="dragState"
-            :transform="`translate(${dragState.currentX - dragState.ghostLayout.width / 2}, ${dragState.ghostLayout.y})`"
+            :transform="ghostTransform"
             opacity="0.6"
             pointer-events="none"
             style="filter: drop-shadow(0 8px 24px rgba(0,0,0,0.25));"
@@ -341,7 +352,7 @@ function handleSvgPointerCancel() {
               :width="dragState.ghostLayout.width"
               :height="dragState.ghostLayout.height"
               rx="6"
-              :fill="dragState.ghostLayout.watts > 0 ? '#4a9eff' : '#888'"
+              fill="var(--color-accent)"
               opacity="0.7"
             />
           </g>
@@ -353,7 +364,7 @@ function handleSvgPointerCancel() {
             :x2="dropIndicatorX"
             y1="0"
             :y2="SVG_HEIGHT"
-            stroke="#2563eb"
+            stroke="var(--color-accent)"
             stroke-width="2"
             stroke-dasharray="4 3"
             pointer-events="none"
