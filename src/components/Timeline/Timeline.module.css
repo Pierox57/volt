@@ -70,61 +70,63 @@
   align-items: stretch;
 }
 
-/* ─── Blocks area (replaces old .canvas) ─────────────────────────────────── */
+/* ─── Blocks area ─────────────────────────────────────────────────────────── */
 .blocksArea {
   flex: 1;
   position: relative;
   min-width: 0;
   cursor: default;
-  padding: var(--space-2);
+  /* No vertical padding: SVG must reach the same bottom edge as the Scale */
+  /* Right padding reserves space for the absolutely-positioned addZone button
+     (36px wide + var(--space-2) gap on each side) so the last block never slides under it */
+  padding: 0 calc(36px + var(--space-2) * 2) 0 var(--space-2);
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
   overflow: hidden;
 }
 
-/* ─── Blocks row ──────────────────────────────────────────────────────────── */
-.blocksRow {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end; /* blocks grow upward from baseline */
+/* ─── SVG canvas (replaces blocksRow) ────────────────────────────────────── */
+.svgCanvas {
   width: 100%;
-  gap: 3px;
-  position: relative;
-  min-height: 80px;
+  /* Fill all vertical space left after the absolutely-positioned addZone button */
+  flex: 1;
+  min-height: 0;
+  display: block;
+  overflow: visible;
 }
 
-/* ─── Zone horizontal lines (replaces colored background bands) ───────────── */
-.zoneLines {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-/* Single thin line at each zone boundary */
-.zoneLine {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--color-border-strong);
+/* ─── SVG zone boundary lines ─────────────────────────────────────────────── */
+.svgZoneLine {
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
   opacity: 0.45;
   pointer-events: none;
 }
 
-/* ─── Lasso selection rectangle ──────────────────────────────────────────── */
-.lassoRect {
+/* ─── SVG lasso rectangle ─────────────────────────────────────────────────── */
+.svgLassoRect {
+  fill: rgba(37, 99, 235, 0.06);
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+/* ─── Lasso cursor overlay (sets crosshair during lasso drag) ─────────────── */
+.lassoCursor {
   position: absolute;
-  border: 1.5px solid var(--color-accent);
-  background: rgba(37, 99, 235, 0.06);
+  inset: 0;
+  cursor: crosshair;
   pointer-events: none;
   z-index: 1;
-  border-radius: 2px;
 }
 
 /* ─── Add-block zone ──────────────────────────────────────────────────────── */
 .addZone {
-  flex-shrink: 0;
+  /* Removed from flex flow so the SVG fills all vertical space */
+  position: absolute;
+  bottom: var(--space-2);
+  right: var(--space-2);
   width: 36px;
   height: 44px;
   border-radius: var(--radius-md);
@@ -134,11 +136,11 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  align-self: center;
   transition:
     border-color var(--duration-fast),
     background var(--duration-fast),
     transform var(--duration-fast) var(--ease-spring);
-  align-self: center;
 }
 
 .addZone:hover {
@@ -191,42 +193,6 @@
   font-size: 13px;
   color: var(--color-text-muted);
   opacity: 0.7;
-}
-
-/* ─── Drag overlay ────────────────────────────────────────────────────────── */
-.dragOverlay {
-  border-radius: var(--radius-md);
-  border: 2px solid;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  box-shadow: var(--shadow-xl);
-  cursor: grabbing;
-  padding: var(--space-2);
-}
-
-.dragOverlayLabel {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.8;
-}
-
-.dragOverlayDur {
-  font-size: 15px;
-  font-weight: 800;
-  font-family: var(--font-mono);
-  letter-spacing: -0.02em;
-}
-
-.dragOverlayWatts {
-  font-size: 11px;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  opacity: 0.75;
 }
 
 /* ─── Total duration strip ────────────────────────────────────────────────── */
