@@ -1,17 +1,13 @@
 <!-- MIGRATED from: App.tsx -->
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { ZONE_CONFIG, ZONES } from '@/types'
-import Timeline       from '@/components/Timeline/Timeline.vue'
-import BlockToolbar   from '@/components/BlockToolbar/BlockToolbar.vue'
-import ShortcutHelper from '@/components/ShortcutHelper/ShortcutHelper.vue'
-import ZoneSettings   from '@/components/ZoneSettings/ZoneSettings.vue'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter, RouterView, RouterLink } from 'vue-router'
 import AuthModal      from '@/components/AuthModal/AuthModal.vue'
 import Onboarding     from '@/components/Onboarding/Onboarding.vue'
 import DeviceModal    from '@/components/DeviceModal/DeviceModal.vue'
 import PaywallModal   from '@/components/PaywallModal/PaywallModal.vue'
+import ZoneSettings   from '@/components/ZoneSettings/ZoneSettings.vue'
 import Toast          from '@/components/Toast/Toast.vue'
-import { useKeyboard }     from '@/composables/useKeyboard'
 import { useWorkoutStore } from '@/stores/workout'
 import { useUserStore }    from '@/stores/user'
 import { computeZonesFromFTP } from '@/zones'
@@ -19,12 +15,27 @@ import styles from './App.module.css'
 
 const store     = useWorkoutStore()
 const userStore = useUserStore()
+const route     = useRoute()
+const router    = useRouter()
+
+const isEditor = computed(() => route.path === '/')
 
 /* ─── Flow state ─────────────────────────────────────────────────────────── */
 type FlowStep = null | 'auth' | 'onboarding' | 'device' | 'paywall'
 const flowStep   = ref<FlowStep>(null)
 const toastMsg   = ref<string | null>(null)
 let   toastTimer: ReturnType<typeof setTimeout> | null = null
+
+/* ─── Open modal from query param (used by router guard redirect) ─────────── */
+watch(
+  () => route.query.modal,
+  (modal) => {
+    if (modal === 'auth')    flowStep.value = 'auth'
+    if (modal === 'paywall') flowStep.value = 'paywall'
+    if (modal) router.replace({ query: {} })
+  },
+  { immediate: true },
+)
 
 /* ─── Toast helper ───────────────────────────────────────────────────────── */
 function showToast(msg: string, delayMs = 0) {
@@ -45,14 +56,6 @@ function formatTotal(s: number): string {
   if (h > 0) return `${h}h${m.toString().padStart(2, '0')}`
   return `${m}min`
 }
-
-/* ─── Keyboard shortcuts ────────────────────────────────────────────────── */
-useKeyboard({
-  onDelete:    store.deleteSelected,
-  onDuplicate: store.duplicateSelected,
-  onSelectAll: store.selectAll,
-  onEscape:    store.deselectAll,
-})
 
 /* ─── Toolbar button label ──────────────────────────────────────────────── */
 const sendButtonLabel = computed(() => {
@@ -142,7 +145,8 @@ function onPaywallActivated() {
         <span :class="styles.brandSub">Workout Builder</span>
       </div>
 
-      <div :class="styles.stats">
+      <!-- Editor stats (only on editor page) -->
+      <div v-if="isEditor" :class="styles.stats">
         <div :class="styles.stat">
           <span :class="styles.statValue">{{ store.blocks.length }}</span>
           <span :class="styles.statLabel">blocs</span>
@@ -158,51 +162,35 @@ function onPaywallActivated() {
           </span>
         </div>
       </div>
+      <div v-else :class="styles.stats" />
 
       <div :class="styles.headerActions">
-        <!-- Zone settings -->
+        <!-- Nav link to workouts (premium only) -->
+        <RouterLink
+          v-if="userStore.isAuthenticated && userStore.isPremium"
+          to="/workouts"
+          :class="styles.navLink"
+          active-class=""
+        >
+          Mes workouts
+        </RouterLink>
+
+        <!-- Zone settings (editor only) -->
         <ZoneSettings
+          v-if="isEditor"
           :zone-system="store.zoneSystem"
           @zone-system-change="store.setZoneSystem"
         />
 
-        <!-- Send to device button -->
-        <button :class="styles.btnPrimary" @click="handleSendToDevice">
+        <!-- Send to device button (editor only) -->
+        <button v-if="isEditor" :class="styles.btnPrimary" @click="handleSendToDevice">
           {{ sendButtonLabel }}
         </button>
       </div>
     </header>
 
-    <!-- Zone legend -->
-    <div :class="styles.legend">
-      <div v-for="zone in ZONES" :key="zone" :class="styles.legendItem">
-        <span
-          :class="styles.legendDot"
-          :style="{ background: ZONE_CONFIG[zone].bg, border: `2px solid ${ZONE_CONFIG[zone].border}` }"
-        />
-        <span :class="styles.legendLabel">{{ ZONE_CONFIG[zone].label }}</span>
-      </div>
-    </div>
-
-    <!-- Main content -->
-    <main :class="styles.main">
-      <Timeline />
-    </main>
-
-    <!-- Block toolbar (floating, anchored above selected blocks) -->
-    <BlockToolbar
-      v-if="store.selectedBlocks.length > 0"
-      :selected-blocks="store.selectedBlocks"
-      :zone-system="store.zoneSystem"
-      @absolute-duration-change="store.setAbsoluteDuration"
-      @watts-change="store.setSelectedWatts"
-      @delete="store.deleteSelected"
-      @duplicate="store.duplicateSelected"
-      @close="store.deselectAll"
-    />
-
-    <!-- Shortcut helper -->
-    <ShortcutHelper />
+    <!-- Routed content -->
+    <RouterView />
 
     <!-- ── Flow modals / screens ────────────────────────────────────────── -->
 

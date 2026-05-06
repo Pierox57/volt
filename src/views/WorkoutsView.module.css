@@ -1,0 +1,489 @@
+/* ─── Page shell ─────────────────────────────────────────────────────────── */
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-8);
+  gap: var(--space-6);
+  min-height: 0;
+  position: relative;
+}
+
+/* ─── Page header ─────────────────────────────────────────────────────────── */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+}
+
+.pageSubtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.searchInput {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--color-text);
+  width: 260px;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* ─── Table ───────────────────────────────────────────────────────────────── */
+.tableWrapper {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead tr {
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  padding: var(--space-3) var(--space-4);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.thCheck   { width: 40px; }
+.thName    { min-width: 200px; }
+.thStat    { width: 80px; }
+.thDate    { width: 110px; }
+.thSync    { width: 90px; }
+.thActions { width: 50px; }
+
+/* ─── Rows ────────────────────────────────────────────────────────────────── */
+.row {
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--duration-fast);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background: var(--color-surface-2);
+}
+
+.rowSelected {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.rowSelected:hover {
+  background: rgba(37, 99, 235, 0.07);
+}
+
+.table td {
+  padding: var(--space-3) var(--space-4);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.tdCheck {
+  padding-right: 0;
+}
+
+.tdName {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.tdStat {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.tdDate {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.tdSync {
+  text-align: center;
+}
+
+.tdActions {
+  text-align: right;
+}
+
+/* ─── Workout name ─────────────────────────────────────────────────────────── */
+.workoutName {
+  display: block;
+}
+
+/* ─── Inline rename ───────────────────────────────────────────────────────── */
+.renameInput {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.renameInput:focus {
+  outline: none;
+}
+
+/* ─── Inline delete confirm ───────────────────────────────────────────────── */
+.deleteConfirmText {
+  display: block;
+  font-size: 13px;
+  color: var(--color-danger);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.deleteConfirmActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ─── Sync badge ──────────────────────────────────────────────────────────── */
+.syncBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.sync-synced {
+  background: rgba(82, 183, 136, 0.15);
+  color: var(--color-success);
+}
+
+.sync-pending {
+  background: rgba(255, 214, 10, 0.15);
+  color: #b38600;
+}
+
+.sync-never {
+  background: rgba(107, 114, 128, 0.12);
+  color: var(--color-text-muted);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.syncSpinning {
+  animation: spin 0.8s linear infinite;
+}
+
+/* ─── Context menu ────────────────────────────────────────────────────────── */
+.menuWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.menuTrigger {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.05em;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.menuTrigger:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  width: 220px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  padding: var(--space-1);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: 14px;
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  transition: background var(--duration-fast);
+}
+
+.menuItem:hover:not(:disabled) {
+  background: var(--color-surface-2);
+}
+
+.menuItem:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menuItemDanger {
+  color: var(--color-danger);
+}
+
+.menuItemDanger:hover:not(:disabled) {
+  background: rgba(230, 57, 70, 0.08);
+}
+
+.menuDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-1) 0;
+}
+
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+.btnSecondary {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--color-border-strong);
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.btnSecondary:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.btnDanger {
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  color: var(--color-danger);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--color-danger);
+  transition: background var(--duration-fast);
+}
+
+.btnDanger:hover {
+  background: rgba(230, 57, 70, 0.1);
+}
+
+.btnGhost {
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--color-border-strong);
+  transition: background var(--duration-fast);
+}
+
+.btnGhost:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.btnDangerSm {
+  padding: 2px var(--space-3);
+  background: transparent;
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--color-danger);
+  transition: background var(--duration-fast);
+}
+
+.btnDangerSm:hover {
+  background: rgba(230, 57, 70, 0.1);
+}
+
+.btnGhostSm {
+  padding: 2px var(--space-3);
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--color-border-strong);
+  transition: background var(--duration-fast);
+}
+
+.btnGhostSm:hover {
+  background: var(--color-surface-2);
+}
+
+/* ─── No results ──────────────────────────────────────────────────────────── */
+.noResults {
+  padding: var(--space-8);
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* ─── Empty state ─────────────────────────────────────────────────────────── */
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-10);
+}
+
+.emptyIllustration {
+  font-size: 64px;
+  opacity: 0.3;
+  line-height: 1;
+}
+
+.emptyTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.emptySubtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.emptyBtn {
+  margin-top: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background var(--duration-fast), transform var(--duration-fast) var(--ease-spring);
+}
+
+.emptyBtn:hover {
+  background: var(--color-accent-hover);
+  transform: scale(1.03);
+}
+
+/* ─── Bulk action bar ─────────────────────────────────────────────────────── */
+.bulkBar {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-text);
+  color: #fff;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  white-space: nowrap;
+}
+
+.bulkCount {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.bulkActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bulkConfirmText {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.bulkBar .btnSecondary {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.bulkBar .btnSecondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.bulkBar .btnDanger {
+  border-color: rgba(230, 57, 70, 0.7);
+  color: #ff8080;
+}
+
+.bulkBar .btnDanger:hover {
+  background: rgba(230, 57, 70, 0.2);
+}
+
+.bulkBar .btnGhost {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.bulkBar .btnGhost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
