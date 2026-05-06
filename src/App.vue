@@ -1,4 +1,3 @@
-<!-- MIGRATED from: App.tsx -->
 <script setup lang="ts">
 import { ZONE_CONFIG, ZONES } from '@/types'
 import Timeline       from '@/components/Timeline/Timeline.vue'
@@ -61,25 +60,6 @@ useKeyboard({
           :zone-system="store.zoneSystem"
           @zone-system-change="store.setZoneSystem"
         />
-
-        <button
-          :class="styles.btnSecondary"
-          @click="store.deselectAll"
-          :disabled="store.selectedIds.size === 0"
-        >
-          Désélectionner
-        </button>
-        <button :class="styles.btnPrimary" @click="store.addBlock">
-          <span>+</span>&nbsp;Ajouter
-        </button>
-        <button
-          v-if="store.blocks.length > 0"
-          :class="styles.btnDanger"
-          @click="store.clearAll"
-          title="Vider la timeline"
-        >
-          Vider
-        </button>
       </div>
     </header>
 
