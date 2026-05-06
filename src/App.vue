@@ -1,46 +1,15 @@
 <!-- MIGRATED from: App.tsx -->
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import type { Block } from '@/types'
-import {
-  DEFAULT_DURATION,
-  MIN_DURATION,
-  ZONE_CONFIG,
-  ZONES,
-  generateId,
-} from '@/types'
-import type { ZoneSystem } from '@/zones'
-import { createDefaultZoneSystem, getZoneIndexForWatts } from '@/zones'
+import { ZONE_CONFIG, ZONES } from '@/types'
 import Timeline       from '@/components/Timeline/Timeline.vue'
 import BlockToolbar   from '@/components/BlockToolbar/BlockToolbar.vue'
 import ShortcutHelper from '@/components/ShortcutHelper/ShortcutHelper.vue'
 import ZoneSettings   from '@/components/ZoneSettings/ZoneSettings.vue'
 import { useKeyboard } from '@/composables/useKeyboard'
+import { useWorkoutStore } from '@/stores/workout'
 import styles from './App.module.css'
 
-/* ─── Initial session (showcase) ───────────────────────────────────────── */
-const INITIAL_BLOCKS: Block[] = [
-  { id: generateId(), duration: 600, zone: 'z1' },
-  { id: generateId(), duration: 300, zone: 'z2' },
-  { id: generateId(), duration: 240, zone: 'z3' },
-  { id: generateId(), duration: 180, zone: 'z4' },
-  { id: generateId(), duration: 90,  zone: 'z5' },
-  { id: generateId(), duration: 180, zone: 'z2' },
-  { id: generateId(), duration: 90,  zone: 'z5' },
-  { id: generateId(), duration: 180, zone: 'z2' },
-  { id: generateId(), duration: 90,  zone: 'z4' },
-  { id: generateId(), duration: 300, zone: 'z1' },
-]
-
-/* ─── State ─────────────────────────────────────────────────────────────── */
-const blocks      = ref<Block[]>(INITIAL_BLOCKS)
-const selectedIds = ref<Set<string>>(new Set())
-const activeId    = ref<string | null>(null)
-const zoneSystem  = ref<ZoneSystem>(createDefaultZoneSystem())
-
-/* ─── Derived ───────────────────────────────────────────────────────────── */
-const selectedBlocks = computed(() => blocks.value.filter((b: Block) => selectedIds.value.has(b.id)))
-const totalSeconds   = computed(() => blocks.value.reduce((s: number, b: Block) => s + b.duration, 0))
+const store = useWorkoutStore()
 
 /* ─── Format helper ─────────────────────────────────────────────────────── */
 function formatTotal(s: number): string {
@@ -50,120 +19,12 @@ function formatTotal(s: number): string {
   return `${m}min`
 }
 
-/* ─── Selection ─────────────────────────────────────────────────────────── */
-function handleSelect(id: string, mode: 'single' | 'multi') {
-  if (mode === 'multi') {
-    const next = new Set(selectedIds.value)
-    if (next.has(id)) next.delete(id)
-    else              next.add(id)
-    selectedIds.value = next
-    return
-  }
-  if (selectedIds.value.size === 1 && selectedIds.value.has(id)) {
-    selectedIds.value = new Set<string>()
-    return
-  }
-  selectedIds.value = new Set([id])
-}
-
-function handleDeselectAll() {
-  selectedIds.value = new Set<string>()
-}
-
-function handleSelectAll() {
-  selectedIds.value = new Set(blocks.value.map((b: Block) => b.id))
-}
-
-/* ─── Add block ─────────────────────────────────────────────────────────── */
-function handleAddBlock() {
-  const newBlock: Block = { id: generateId(), duration: DEFAULT_DURATION, zone: 'z2' }
-  blocks.value      = [...blocks.value, newBlock]
-  selectedIds.value = new Set([newBlock.id])
-}
-
-/* ─── Resize block ──────────────────────────────────────────────────────── */
-function handleResizeBlock(id: string, duration: number) {
-  blocks.value = blocks.value.map((b: Block) => (b.id === id ? { ...b, duration } : b))
-}
-
-/* ─── Watts change ──────────────────────────────────────────────────────── */
-function handleWattsChange(id: string, watts: number) {
-  blocks.value = blocks.value.map((b: Block) => {
-    if (b.id !== id) return b
-    const zoneIdx = getZoneIndexForWatts(watts, zoneSystem.value.zones)
-    return { ...b, watts, zone: ZONES[zoneIdx] }
-  })
-}
-
-/* ─── Delete ────────────────────────────────────────────────────────────── */
-function handleDelete() {
-  if (selectedIds.value.size === 0) return
-  blocks.value      = blocks.value.filter((b: Block) => !selectedIds.value.has(b.id))
-  selectedIds.value = new Set<string>()
-}
-
-/* ─── Duplicate ─────────────────────────────────────────────────────────── */
-function handleDuplicate() {
-  if (selectedIds.value.size === 0) return
-  const selectedInOrder = blocks.value.filter((b: Block) => selectedIds.value.has(b.id))
-  const lastIdx = Math.max(...selectedInOrder.map((b: Block) => blocks.value.indexOf(b)))
-  const clones  = selectedInOrder.map((b: Block) => ({ ...b, id: generateId() }))
-  blocks.value = [
-    ...blocks.value.slice(0, lastIdx + 1),
-    ...clones,
-    ...blocks.value.slice(lastIdx + 1),
-  ]
-  selectedIds.value = new Set(clones.map((c: Block) => c.id))
-}
-
-/* ─── Group edit ────────────────────────────────────────────────────────── */
-function handleAbsoluteDurationChange(duration: number) {
-  blocks.value = blocks.value.map((b: Block) =>
-    selectedIds.value.has(b.id)
-      ? { ...b, duration: Math.max(MIN_DURATION, duration) }
-      : b,
-  )
-}
-
-function handleBlockEditorWattsChange(watts: number) {
-  blocks.value = blocks.value.map((b: Block) => {
-    if (!selectedIds.value.has(b.id)) return b
-    const zoneIdx = getZoneIndexForWatts(watts, zoneSystem.value.zones)
-    return { ...b, watts, zone: ZONES[zoneIdx] }
-  })
-}
-
-/* ─── Zone system ───────────────────────────────────────────────────────── */
-function handleZoneSystemChange(sys: ZoneSystem) {
-  zoneSystem.value = sys
-  blocks.value = blocks.value.map((b: Block) => {
-    if (b.watts === undefined) return b
-    const zoneIdx = getZoneIndexForWatts(b.watts, sys.zones)
-    return { ...b, zone: ZONES[zoneIdx] }
-  })
-}
-
-/* ─── Drag & drop ───────────────────────────────────────────────────────── */
-function handleDragStart(id: string) {
-  activeId.value = id
-}
-
-function handleDragEnd() {
-  activeId.value = null
-}
-
-/* ─── Clear all ─────────────────────────────────────────────────────────── */
-function handleClearAll() {
-  blocks.value      = []
-  selectedIds.value = new Set<string>()
-}
-
 /* ─── Keyboard shortcuts ────────────────────────────────────────────────── */
 useKeyboard({
-  onDelete:    handleDelete,
-  onDuplicate: handleDuplicate,
-  onSelectAll: handleSelectAll,
-  onEscape:    handleDeselectAll,
+  onDelete:    store.deleteSelected,
+  onDuplicate: store.duplicateSelected,
+  onSelectAll: store.selectAll,
+  onEscape:    store.deselectAll,
 })
 </script>
 
@@ -179,17 +40,17 @@ useKeyboard({
 
       <div :class="styles.stats">
         <div :class="styles.stat">
-          <span :class="styles.statValue">{{ blocks.length }}</span>
+          <span :class="styles.statValue">{{ store.blocks.length }}</span>
           <span :class="styles.statLabel">blocs</span>
         </div>
-        <div v-if="totalSeconds > 0" :class="styles.stat">
-          <span :class="styles.statValue">{{ formatTotal(totalSeconds) }}</span>
+        <div v-if="store.totalSeconds > 0" :class="styles.stat">
+          <span :class="styles.statValue">{{ formatTotal(store.totalSeconds) }}</span>
           <span :class="styles.statLabel">durée</span>
         </div>
-        <div v-if="selectedIds.size > 0" :class="[styles.stat, styles.statSelected]">
-          <span :class="styles.statValue">{{ selectedIds.size }}</span>
+        <div v-if="store.selectedIds.size > 0" :class="[styles.stat, styles.statSelected]">
+          <span :class="styles.statValue">{{ store.selectedIds.size }}</span>
           <span :class="styles.statLabel">
-            sélectionné{{ selectedIds.size > 1 ? 's' : '' }}
+            sélectionné{{ store.selectedIds.size > 1 ? 's' : '' }}
           </span>
         </div>
       </div>
@@ -197,24 +58,24 @@ useKeyboard({
       <div :class="styles.headerActions">
         <!-- Zone settings -->
         <ZoneSettings
-          :zone-system="zoneSystem"
-          @zone-system-change="handleZoneSystemChange"
+          :zone-system="store.zoneSystem"
+          @zone-system-change="store.setZoneSystem"
         />
 
         <button
           :class="styles.btnSecondary"
-          @click="handleDeselectAll"
-          :disabled="selectedIds.size === 0"
+          @click="store.deselectAll"
+          :disabled="store.selectedIds.size === 0"
         >
           Désélectionner
         </button>
-        <button :class="styles.btnPrimary" @click="handleAddBlock">
+        <button :class="styles.btnPrimary" @click="store.addBlock">
           <span>+</span>&nbsp;Ajouter
         </button>
         <button
-          v-if="blocks.length > 0"
+          v-if="store.blocks.length > 0"
           :class="styles.btnDanger"
-          @click="handleClearAll"
+          @click="store.clearAll"
           title="Vider la timeline"
         >
           Vider
@@ -235,33 +96,19 @@ useKeyboard({
 
     <!-- Main content -->
     <main :class="styles.main">
-      <Timeline
-        :blocks="blocks"
-        :selected-ids="selectedIds"
-        :active-id="activeId"
-        :zone-system="zoneSystem"
-        @blocks-change="blocks = $event"
-        @select="handleSelect"
-        @deselect-all="handleDeselectAll"
-        @lasso-select="selectedIds = $event"
-        @add-block="handleAddBlock"
-        @resize-block="handleResizeBlock"
-        @watts-change="handleWattsChange"
-        @drag-start="handleDragStart"
-        @drag-end="handleDragEnd"
-      />
+      <Timeline />
     </main>
 
     <!-- Block toolbar (floating, anchored above selected blocks) -->
     <BlockToolbar
-      v-if="selectedBlocks.length > 0"
-      :selected-blocks="selectedBlocks"
-      :zone-system="zoneSystem"
-      @absolute-duration-change="handleAbsoluteDurationChange"
-      @watts-change="handleBlockEditorWattsChange"
-      @delete="handleDelete"
-      @duplicate="handleDuplicate"
-      @close="handleDeselectAll"
+      v-if="store.selectedBlocks.length > 0"
+      :selected-blocks="store.selectedBlocks"
+      :zone-system="store.zoneSystem"
+      @absolute-duration-change="store.setAbsoluteDuration"
+      @watts-change="store.setSelectedWatts"
+      @delete="store.deleteSelected"
+      @duplicate="store.duplicateSelected"
+      @close="store.deselectAll"
     />
 
     <!-- Shortcut helper -->

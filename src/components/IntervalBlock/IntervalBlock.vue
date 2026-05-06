@@ -1,8 +1,4 @@
-<!-- MIGRATED from: IntervalBlock/index.tsx -->
-<!-- Migration note: dnd-kit useSortable is handled by the parent VueDraggable wrapper.
-     Per-item drag state (isDragging/transform) is handled via SortableJS CSS classes
-     (.sortable-ghost for the placeholder, .sortable-drag for the flying clone).
-     The sortable wrapper div is rendered here; VueDraggable binds drag attributes to it. -->
+<!-- SVG-native block: renders a <g> containing <rect> elements -->
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { Block, ZoneRange } from '@/types'
@@ -10,29 +6,23 @@ import {
   ZONE_CONFIG,
   MIN_DURATION,
   SNAP_GRID,
-  CANVAS_HEIGHT,
-  MIN_BLOCK_HEIGHT,
   TOTAL_ZONES,
   formatDuration,
 } from '@/types'
 import { smartSnapWatts } from '@/zones'
-import styles from './IntervalBlock.module.css'
+import type { BlockLayout } from '@/components/Timeline/Timeline.vue'
+
+const DRAG_THRESHOLD = 4 // px before a click becomes a drag
 
 const props = defineProps<{
   block: Block
+  /** Absolute pixel layout from the parent SVG */
+  layout: BlockLayout
   isSelected: boolean
-  isActive: boolean
-  /** Width as a CSS value, e.g. "12.5%" */
-  widthStyle: string
-  /** Height as a 0–1 ratio of the blocks-row container height */
-  heightRatio: number
-  /** The effective watts for this block (computed by parent) */
-  effectiveWatts: number
-  /** Zone ranges for smart snap */
+  /** True while being drag-reordered (shows ghost state) */
+  isDragging: boolean
+  svgHeight: number
   zoneRanges: ZoneRange[]
-  /** Watts values of neighbouring blocks for smart snap */
-  neighborWatts: number[]
-  /** Max display watts (scale ceiling) */
   maxDisplayWatts: number
 }>()
 
@@ -40,164 +30,233 @@ const emit = defineEmits<{
   select: [id: string, mode: 'single' | 'multi']
   resize: [id: string, duration: number]
   wattsChange: [id: string, watts: number]
+  /** Emitted when the user starts dragging the block for reorder (pointerX in SVG coords) */
+  dragStart: [id: string, pointerX: number]
 }>()
-
-const resizingWidthRef   = ref(false)
-const resizingHeightRef  = ref(false)
-const widthHandleRef     = ref<HTMLDivElement | null>(null)
-const heightHandleRef    = ref<HTMLDivElement | null>(null)
 
 const zone = computed(() => ZONE_CONFIG[props.block.zone])
 
-const wrapperStyle = computed(() => ({
-  flexShrink: 1,
-  flexGrow: 0,
-  flexBasis: props.widthStyle,
-  alignSelf: 'flex-end' as const,
-  // Use CSS max() so blocks have both a minimum pixel height and a % of the container
-  height: `max(${MIN_BLOCK_HEIGHT}px, ${(props.heightRatio * 100).toFixed(2)}%)`,
-}))
+/* ── Derived display ── */
+const approxH     = computed(() => props.layout.height)
+const isTiny      = computed(() => approxH.value < 48)
+const isVerySmall = computed(() => approxH.value < 32)
 
-// Use CANVAS_HEIGHT as the reference for content-hiding thresholds
-const approxHeightPx = computed(() => Math.max(MIN_BLOCK_HEIGHT, props.heightRatio * CANVAS_HEIGHT))
-const isTiny      = computed(() => approxHeightPx.value < 48)
-const isVerySmall = computed(() => approxHeightPx.value < 32)
+const intensityBarH = computed(() =>
+  (zone.value.intensity / TOTAL_ZONES) * props.layout.height,
+)
 
-/* ── Selection ──────────────────────────────────────────────────────────── */
-function handleClick(e: MouseEvent) {
+/* ── Block-level click / drag-start dispatch ── */
+const pointerDownX   = ref(0)
+const hasDragEmitted = ref(false)
+
+function handleBlockPointerDown(e: PointerEvent) {
   e.stopPropagation()
-  if (e.shiftKey || e.metaKey || e.ctrlKey) {
-    emit('select', props.block.id, 'multi')
-  } else {
-    emit('select', props.block.id, 'single')
+  pointerDownX.value   = e.clientX
+  hasDragEmitted.value = false
+  ;(e.currentTarget as SVGElement).setPointerCapture(e.pointerId)
+}
+
+function handleBlockPointerMove(e: PointerEvent) {
+  if (!hasDragEmitted.value) {
+    const dx = Math.abs(e.clientX - pointerDownX.value)
+    if (dx > DRAG_THRESHOLD) {
+      hasDragEmitted.value = true
+      // Compute pointer X relative to the SVG
+      const svgEl = (e.currentTarget as SVGElement).ownerSVGElement
+      const rect  = svgEl?.getBoundingClientRect()
+      const svgX  = rect ? e.clientX - rect.left : e.clientX
+      emit('dragStart', props.block.id, svgX)
+    }
   }
 }
 
-function handleKeyDown(e: KeyboardEvent) {
-  if (e.key === 'Enter' || e.key === ' ') handleClick(e as unknown as MouseEvent)
+function handleBlockPointerUp(e: PointerEvent) {
+  if (!hasDragEmitted.value) {
+    // It was a click (not a drag)
+    if (e.shiftKey || e.metaKey || e.ctrlKey) {
+      emit('select', props.block.id, 'multi')
+    } else {
+      emit('select', props.block.id, 'single')
+    }
+  }
+  hasDragEmitted.value = false
 }
 
-/* ── Width resize (horizontal) ──────────────────────────────────────────── */
+/* ── Width resize (horizontal, right edge) ── */
+const resizingWidth = ref(false)
+
 function handleWidthResizePointerDown(e: PointerEvent) {
   e.stopPropagation()
-  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  resizingWidthRef.value = true
+  ;(e.currentTarget as SVGElement).setPointerCapture(e.pointerId)
+  resizingWidth.value = true
   const startX   = e.clientX
   const startDur = props.block.duration
-  widthHandleRef.value?.classList.add(styles.dragging)
 
-  const onPointerMove = (ev: PointerEvent) => {
-    if (!resizingWidthRef.value) return
-    const delta       = ev.clientX - startX
-    const rawDuration = startDur + (delta / 1.5)
-    const snapped     = Math.round(rawDuration / SNAP_GRID) * SNAP_GRID
-    const clamped     = Math.max(MIN_DURATION, snapped)
+  const onMove = (ev: PointerEvent) => {
+    if (!resizingWidth.value) return
+    const delta      = ev.clientX - startX
+    const rawDur     = startDur + delta / 1.5
+    const snapped    = Math.round(rawDur / SNAP_GRID) * SNAP_GRID
+    const clamped    = Math.max(MIN_DURATION, snapped)
     emit('resize', props.block.id, clamped)
   }
-
-  const onPointerUp = () => {
-    resizingWidthRef.value = false
-    widthHandleRef.value?.classList.remove(styles.dragging)
-    window.removeEventListener('pointermove', onPointerMove)
-    window.removeEventListener('pointerup',   onPointerUp)
+  const onUp = () => {
+    resizingWidth.value = false
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup',   onUp)
   }
-
-  window.addEventListener('pointermove', onPointerMove)
-  window.addEventListener('pointerup',   onPointerUp)
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup',   onUp)
 }
 
-/* ── Height resize (vertical – smart snap) ──────────────────────────────── */
+/* ── Height resize (vertical, top edge) ── */
+const resizingHeight = ref(false)
+
 function handleHeightResizePointerDown(e: PointerEvent) {
   e.stopPropagation()
-  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  resizingHeightRef.value = true
+  ;(e.currentTarget as SVGElement).setPointerCapture(e.pointerId)
+  resizingHeight.value = true
   const startY     = e.clientY
-  const startWatts = props.effectiveWatts
-  heightHandleRef.value?.classList.add(styles.dragging)
+  const startWatts = props.layout.watts
+  const pxPerWatt  = props.svgHeight / props.maxDisplayWatts
 
-  const containerEl = (e.currentTarget as HTMLElement).closest('[data-blocks-row]') as HTMLElement | null
-  const containerH  = containerEl?.clientHeight ?? CANVAS_HEIGHT
-  const pxPerWatt   = containerH / props.maxDisplayWatts
-
-  const onPointerMove = (ev: PointerEvent) => {
-    if (!resizingHeightRef.value) return
+  const onMove = (ev: PointerEvent) => {
+    if (!resizingHeight.value) return
     const deltaY     = startY - ev.clientY
     const deltaWatts = deltaY / pxPerWatt
     const rawWatts   = startWatts + deltaWatts
-    const snapped    = smartSnapWatts(rawWatts, props.zoneRanges, props.neighborWatts)
+    const snapped    = smartSnapWatts(rawWatts, props.zoneRanges, props.layout.neighborWatts)
     const minWatts   = props.zoneRanges[0]?.min ?? 0
     const clamped    = Math.max(minWatts, Math.min(props.maxDisplayWatts, snapped))
     emit('wattsChange', props.block.id, Math.round(clamped))
   }
-
-  const onPointerUp = () => {
-    resizingHeightRef.value = false
-    heightHandleRef.value?.classList.remove(styles.dragging)
-    window.removeEventListener('pointermove', onPointerMove)
-    window.removeEventListener('pointerup',   onPointerUp)
+  const onUp = () => {
+    resizingHeight.value = false
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup',   onUp)
   }
-
-  window.addEventListener('pointermove', onPointerMove)
-  window.addEventListener('pointerup',   onPointerUp)
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup',   onUp)
 }
 </script>
 
 <template>
-  <div
-    :style="wrapperStyle"
-    :class="styles.wrapper"
+  <g
+    :transform="`translate(${layout.x}, ${layout.y})`"
     :data-block-id="block.id"
+    :opacity="isDragging ? 0.3 : 1"
   >
-    <div
-      :class="[styles.block, isSelected && styles.selected, isActive && styles.active]"
-      :style="{
-        background:  zone.bg,
-        borderColor: zone.border,
-        color:       zone.color,
-        height:      '100%',
-      }"
-      @click="handleClick"
-      @keydown="handleKeyDown"
+    <!-- Main rect (zone colour) -->
+    <rect
+      :width="layout.width"
+      :height="layout.height"
+      rx="6"
+      :fill="zone.bg"
+      :stroke="isSelected ? 'rgba(255,255,255,0.9)' : 'transparent'"
+      stroke-width="2"
+      cursor="grab"
+      @pointerdown="handleBlockPointerDown"
+      @pointermove="handleBlockPointerMove"
+      @pointerup="handleBlockPointerUp"
+      :aria-label="`${zone.label} – ${formatDuration(block.duration)} – ${layout.watts}W`"
       role="button"
-      :tabindex="0"
       :aria-pressed="isSelected"
-      :aria-label="`${zone.label} – ${formatDuration(block.duration)} – ${effectiveWatts}W`"
-    >
-      <!-- Height resize handle (top, for vertical resize) -->
-      <div
-        ref="heightHandleRef"
-        :class="styles.heightResizeHandle"
-        @pointerdown.stop="handleHeightResizePointerDown"
-        :title="`${effectiveWatts}W – glisser pour ajuster`"
-      >
-        <span :class="styles.heightResizePill" />
-      </div>
+    />
 
-      <!-- Content -->
-      <div v-if="!isVerySmall" :class="styles.content">
-        <span v-if="!isTiny" :class="styles.zoneLabel">{{ zone.label }}</span>
-        <span :class="styles.duration">{{ formatDuration(block.duration) }}</span>
-        <span v-if="!isTiny" :class="styles.wattsLabel">{{ effectiveWatts }}W</span>
-      </div>
+    <!-- Intensity bar (left accent) -->
+    <rect
+      x="0"
+      :y="layout.height - intensityBarH"
+      width="4"
+      :height="intensityBarH"
+      :fill="zone.border"
+      opacity="0.7"
+      pointer-events="none"
+    />
 
-      <!-- Intensity bar (left accent) -->
-      <div
-        :class="styles.intensityBar"
-        :style="{ height: `${(zone.intensity / TOTAL_ZONES) * 100}%`, background: zone.border }"
-      />
+    <!-- Text content (only shown when block is large enough) -->
+    <template v-if="!isVerySmall">
+      <text
+        v-if="!isTiny"
+        :x="layout.width / 2"
+        :y="layout.height / 2 - 12"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        :fill="zone.color"
+        font-size="10"
+        font-weight="700"
+        letter-spacing="0.06em"
+        font-family="inherit"
+        pointer-events="none"
+        style="text-transform: uppercase;"
+      >{{ zone.label }}</text>
 
-      <!-- Width resize handle (right edge) -->
-      <div
-        ref="widthHandleRef"
-        :class="styles.resizeHandle"
-        @pointerdown.stop="handleWidthResizePointerDown"
-        title="Redimensionner la durée"
-      >
-        <span :class="styles.resizePill" />
-      </div>
+      <text
+        :x="layout.width / 2"
+        :y="layout.height / 2 + (isTiny ? 0 : 4)"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        :fill="zone.color"
+        font-size="13"
+        font-weight="800"
+        font-family="var(--font-mono, monospace)"
+        pointer-events="none"
+      >{{ formatDuration(block.duration) }}</text>
 
-      <!-- Selection ring overlay -->
-      <div v-if="isSelected" :class="styles.selectionRing" />
-    </div>
-  </div>
+      <text
+        v-if="!isTiny"
+        :x="layout.width / 2"
+        :y="layout.height / 2 + 18"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        :fill="zone.color"
+        font-size="10"
+        font-weight="700"
+        font-family="var(--font-mono, monospace)"
+        opacity="0.85"
+        pointer-events="none"
+      >{{ layout.watts }}W</text>
+    </template>
+
+    <!-- Height resize handle (top edge pill) -->
+    <rect
+      :x="Math.max(0, (layout.width - 24) / 2)"
+      y="4"
+      width="24"
+      height="8"
+      rx="4"
+      fill="rgba(255,255,255,0.45)"
+      cursor="ns-resize"
+      :title="`${layout.watts}W – glisser pour ajuster`"
+      @pointerdown.stop="handleHeightResizePointerDown"
+    />
+
+    <!-- Width resize handle (right edge pill) -->
+    <rect
+      :x="layout.width - 10"
+      :y="Math.max(0, (layout.height - 24) / 2)"
+      width="6"
+      height="24"
+      rx="3"
+      fill="rgba(255,255,255,0.45)"
+      cursor="ew-resize"
+      title="Redimensionner la durée"
+      @pointerdown.stop="handleWidthResizePointerDown"
+    />
+
+    <!-- Selection glow ring -->
+    <rect
+      v-if="isSelected"
+      x="-3"
+      y="-3"
+      :width="layout.width + 6"
+      :height="layout.height + 6"
+      rx="9"
+      fill="none"
+      stroke="#2563eb"
+      stroke-width="3"
+      opacity="0.5"
+      pointer-events="none"
+    />
+  </g>
 </template>
